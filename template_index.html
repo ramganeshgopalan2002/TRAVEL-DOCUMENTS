@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Boarding Pass Generator</title>
+    <!-- QRCode.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-section, .pass-section { margin-bottom: 30px; }
+        .pass-section { border: 1px solid #ccc; padding: 20px; width: 400px; }
+        canvas { border: 1px solid #ccc; margin-top: 10px; }
+        label { display: block; margin-top: 8px; }
+        input { width: 200px; }
+        button { margin-top: 15px; padding: 10px 15px; }
+    </style>
+</head>
+<body>
+
+<h2>Boarding Pass Generator</h2>
+
+<div class="form-section">
+    <label>First Name: <input type="text" id="firstName" value="John"></label>
+    <label>Last Name: <input type="text" id="lastName" value="Doe"></label>
+    <label>Flight: <input type="text" id="flight" value="PH 0121"></label>
+    <label>From: <input type="text" id="from" value="BOM"></label>
+    <label>To: <input type="text" id="to" value="DEL"></label>
+    <label>Date: <input type="date" id="date" value="2025-09-10"></label>
+    <label>Time: <input type="time" id="time" value="13:15"></label>
+    <label>Seat: <input type="text" id="seat" value="14A"></label>
+    <label>Gate: <input type="text" id="gate" value="B12"></label>
+    <label>PNR: <input type="text" id="pnr" value="ABC123"></label>
+    <button onclick="generateBoardingPass()">Generate Boarding Pass</button>
+</div>
+
+<div class="pass-section">
+    <h3>Boarding Pass Preview</h3>
+    <p><b>Name:</b> <span id="passName"></span></p>
+    <p><b>Flight:</b> <span id="passFlight"></span></p>
+    <p><b>From:</b> <span id="passFrom"></span></p>
+    <p><b>To:</b> <span id="passTo"></span></p>
+    <p><b>Date:</b> <span id="passDate"></span></p>
+    <p><b>Time:</b> <span id="passTime"></span></p>
+    <p><b>Seat:</b> <span id="passSeat"></span></p>
+    <p><b>Gate:</b> <span id="passGate"></span></p>
+    <p><b>PNR:</b> <span id="passPnr"></span></p>
+    <canvas id="qrCanvas"></canvas>
+
+    <h4>Mobile Boarding Pass QR</h4>
+    <canvas id="mobileQrCanvas"></canvas>
+</div>
+
+<script>
+function generateBoardingPass() {
+    try {
+        // Get form values with defaults
+        const firstName = document.getElementById('firstName')?.value || 'John';
+        const lastName = document.getElementById('lastName')?.value || 'Doe';
+        const flight = document.getElementById('flight')?.value || 'PH 0121';
+        const from = document.getElementById('from')?.value || 'BOM';
+        const to = document.getElementById('to')?.value || 'DEL';
+        const date = document.getElementById('date')?.value || '2025-09-10';
+        const time = document.getElementById('time')?.value || '13:15';
+        const seat = document.getElementById('seat')?.value || '14A';
+        const gate = document.getElementById('gate')?.value || 'B12';
+        const pnr = document.getElementById('pnr')?.value || 'ABC123';
+
+        // Helper to format time
+        const formatTime = t => t.length >= 5 ? t.slice(0, 5) : t;
+
+        // Update preview text
+        document.getElementById('passName').textContent = (firstName + ' ' + lastName).toUpperCase();
+        document.getElementById('passFlight').textContent = flight;
+        document.getElementById('passFrom').textContent = from;
+        document.getElementById('passTo').textContent = to;
+        document.getElementById('passDate').textContent = date;
+        document.getElementById('passTime').textContent = formatTime(time);
+        document.getElementById('passSeat').textContent = seat;
+        document.getElementById('passGate').textContent = gate;
+        document.getElementById('passPnr').textContent = pnr;
+
+        // QR code data
+        const qrData = `BOARDING PASS
+Passenger: ${firstName} ${lastName}
+Flight: ${flight}
+From: ${from}
+To: ${to}
+Date: ${date}
+Time: ${formatTime(time)}
+Seat: ${seat}
+Gate: ${gate}
+PNR: ${pnr}`;
+
+        // Desktop QR
+        const qrCanvas = document.getElementById('qrCanvas');
+        if (qrCanvas) {
+            qrCanvas.width = 128;
+            qrCanvas.height = 128;
+            QRCode.toCanvas(qrCanvas, qrData, { width: 128, margin: 1, color: { dark:'#000000', light:'#ffffff' } }, err => {
+                if (err) console.error('QR Code error:', err);
+            });
+        }
+
+        // Mobile QR
+        const mobileQrCanvas = document.getElementById('mobileQrCanvas');
+        if (mobileQrCanvas) {
+            mobileQrCanvas.width = 180;
+            mobileQrCanvas.height = 180;
+            QRCode.toCanvas(mobileQrCanvas, qrData, { width: 180, margin: 1, color: { dark:'#183D5E', light:'#ffffff' } }, err => {
+                if (err) console.error('Mobile QR Code error:', err);
+            });
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error generating boarding pass:', error);
+        alert('Error generating boarding pass: ' + error.message);
+        return false;
+    }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Document Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Required Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- Barcode Library -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                flex-direction: row;
+                gap: 4rem;
+            }
+        }
+
+        .form-container, .preview-container {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-container {
+            max-width: 500px;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-btn {
+            padding: 0.75rem 1rem;
+            background-color: #e2e8f0;
+            color: #4a5568;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .header-btn:hover {
+            background-color: #cbd5e1;
+        }
+
+        .header-btn.active {
+            background-color: #1a202c;
+            color: #ffffff;
+            border-color: #4a5568;
+        }
+
+        .form-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background-color: #f7fafc;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4a5568;
+        }
+
+        .generate-btn, .api-btn, .download-btn {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .generate-btn {
+            background-color: #38a169;
+            margin-top: 1.5rem;
+        }
+        
+        .generate-btn:hover {
+            background-color: #2f855a;
+        }
+        
+        .api-controls {
+            margin-top: 2rem;
+            border-top: 2px solid #e2e8f0;
+            padding-top: 1.5rem;
+        }
+        
+        .api-controls h3, .saved-documents h3 {
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 1rem;
+        }
+        
+        .api-btn {
+            background-color: #3182ce;
+            margin-bottom: 0.5rem;
+        }
+        
+        .api-btn:hover {
+            background-color: #2c5282;
+        }
+        
+        .download-btn {
+            background-color: #9f7aea;
+            margin-top: 1.5rem;
+            display: none;
+        }
+        
+        .download-btn:hover {
+            background-color: #805ad5;
+        }
+
+        .saved-documents {
+            margin-top: 2rem;
+            border-top: 2px solid #e2e8f0;
+            padding-top: 1.5rem;
+        }
+
+        .document-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .preview-container {
+            position: relative;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 500px;
+        }
+        
+        .preview-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 1rem;
+        }
+        
+        .preview-instruction {
+            color: #718096;
+            font-style: italic;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .iata-boarding-pass, .mobile-pass, .e-ticket, .baggage-tag-preview {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            background-color: #f7fafc;
+            padding: 1.5rem;
+            border: 2px solid #e2e8f0;
+            box-sizing: border-box;
+            color: #183D5E;
+        }
+        
+        .iata-pass-header, .mobile-pass-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .iata-airline, .mobile-airline {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #183D5E;
+        }
+        
+        .iata-tagline {
+            font-size: 0.875rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+        
+        .iata-pass-title, .mobile-pass-title {
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border-bottom: 2px solid #183D5E;
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+        
+        .iata-route-section, .mobile-route-section {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .iata-airport, .mobile-airport {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .iata-airport-label, .mobile-airport-label {
+            font-size: 0.75rem;
+            color: #718096;
+            font-weight: 600;
+        }
+        
+        .iata-airport-code, .mobile-airport-code {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .iata-airport-city, .mobile-airport-city {
+            font-size: 0.875rem;
+            color: #4a5568;
+            text-transform: uppercase;
+        }
+        
+        .iata-airport-terminal, .mobile-airport-terminal {
+            font-size: 0.75rem;
+            color: #718096;
+        }
+        
+        .iata-flight-info, .mobile-flight-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 1.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .iata-flight-info {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .iata-info-item, .mobile-info-item {
+            text-align: center;
+        }
+        
+        .iata-info-label, .mobile-info-label {
+            font-size: 0.75rem;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .iata-info-value, .mobile-info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a202c;
+            margin-top: 0.25rem;
+            word-wrap: break-word;
+        }
+        
+        .iata-flight-times, .mobile-flight-times {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 1.5rem;
+        }
+        
+        .iata-time-group, .mobile-time-group {
+            text-align: center;
+        }
+        
+        .iata-time, .mobile-time {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #38a169;
+        }
+        
+        .iata-date, .mobile-date {
+            font-size: 0.875rem;
+            color: #4a5568;
+            margin-top: 0.25rem;
+        }
+        
+        .iata-duration, .mobile-duration {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #4a5568;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px dashed #e2e8f0;
+            padding-bottom: 1.5rem;
+        }
+        
+        .iata-codes-section, .mobile-codes-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        
+        .iata-qr-container, .mobile-qr-container {
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+        }
+        
+        .qr-code-container, .mobile-qr-code-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .iata-barcode-container, .mobile-barcode-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .barcode-number {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-top: 0.5rem;
+            word-break: break-all;
+        }
+        
+        .iata-footer, .mobile-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #718096;
+            margin-top: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .iata-by-phonon, .mobile-by-phonon {
+            font-weight: 600;
+        }
+        
+        /* Mobile Pass Specific Styles */
+        .mobile-pass {
+            font-size: 0.875rem;
+        }
+        .mobile-pass-header {
+            margin-bottom: 1rem;
+        }
+        .mobile-pass-title {
+            padding-bottom: 0.25rem;
+        }
+        .mobile-route-section {
+            margin-bottom: 1rem;
+        }
+        .mobile-airport-code {
+            font-size: 2rem;
+        }
+        .mobile-flight-times {
+            margin-bottom: 1rem;
+            padding-top: 1rem;
+        }
+        .mobile-time {
+            font-size: 1.5rem;
+        }
+        .mobile-duration {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+        }
+        .mobile-passenger-section {
+            text-align: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px dashed #e2e8f0;
+            padding-bottom: 1rem;
+        }
+        .mobile-passenger-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        .mobile-flight-info {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-top: 1rem;
+        }
+        .mobile-info-label {
+            font-size: 0.625rem;
+        }
+        .mobile-info-value {
+            font-size: 0.875rem;
+        }
+        .mobile-codes-section {
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+        }
+        .mobile-qr-code-container {
+            width: 120px;
+            height: 120px;
+        }
+
+        /* E-Ticket Styles */
+        .e-ticket {
+            padding: 2rem;
+        }
+        .e-ticket-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .e-ticket-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        .e-ticket-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .e-ticket-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .e-ticket-info {
+            flex: 1;
+        }
+        .e-ticket-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+        }
+        .e-ticket-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a202c;
+            margin-top: 0.25rem;
+        }
+        .e-ticket-qr-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        .e-ticket-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #718096;
+            margin-top: 2rem;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 1rem;
+        }
+
+        /* Baggage Tag Styles */
+        .baggage-tag-preview {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .baggage-tag-header {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .baggage-tag-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        .baggage-tag-body {
+            width: 100%;
+        }
+        .baggage-tag-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .baggage-tag-info {
+            flex: 1;
+        }
+        .baggage-tag-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+        }
+        .baggage-tag-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a202c;
+            margin-top: 0.25rem;
+        }
+        .baggage-tag-barcode-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1.5rem;
+        }
+        .baggage-tag-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #718096;
+            margin-top: 2rem;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 1rem;
+        }
+
+        /* Status message */
+        .status-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            color: #ffffff;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s, top 0.3s;
+            z-index: 1000;
+        }
+
+        .status-message.show {
+            opacity: 1;
+            top: 30px;
+        }
+
+        .status-message.success {
+            background-color: #38a169;
+        }
+
+        .status-message.error {
+            background-color: #e53e3e;
+        }
+        .status-message.warning {
+            background-color: #f6ad55;
+        }
+
+        /* Airplane Icons */
+        .horizontal-airplane svg {
+            width: 40px;
+            height: 40px;
+            fill: currentColor;
+        }
+        .mobile-airplane svg {
+            width: 30px;
+            height: 30px;
+            fill: currentColor;
+        }
+
+        /* Custom Modal styles for confirmation */
+        .modal {
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content p {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .modal-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .confirm-btn {
+            background-color: #e53e3e;
+            color: white;
+        }
+
+        .confirm-btn:hover {
+            background-color: #c53030;
+        }
+
+        .cancel-btn {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .cancel-btn:hover {
+            background-color: #cbd5e1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-inter">
+    <!-- Boarding Pass Preview -->
+<div id="preview" class="preview-container">
+    <h2 class="text-xl font-bold mb-4">Boarding Pass</h2>
+    <div class="border p-4 rounded-lg flex justify-between items-center">
+        <div>
+            <p><strong>Passenger:</strong> <span id="previewName">John Doe</span></p>
+            <p><strong>Flight:</strong> <span id="previewFlight">AB123</span></p>
+            <p><strong>From:</strong> <span id="previewFrom">JFK</span> → <span id="previewTo">LAX</span></p>
+            <p><strong>Seat:</strong> <span id="previewSeat">12A</span></p>
+        </div>
+        <div>
+            <canvas id="qrCode"></canvas>
+        </div>
+    </div>
+
+    <h2 class="text-xl font-bold mt-6 mb-4">Baggage Tag</h2>
+    <div class="border p-4 rounded-lg flex justify-between items-center">
+        <div>
+            <p><strong>Bag ID:</strong> <span id="previewBag">BAG123456</span></p>
+            <p><strong>Route:</strong> <span id="previewFrom2">JFK</span> → <span id="previewTo2">LAX</span></p>
+        </div>
+        <div>
+            <svg id="barcode"></svg>
+        </div>
+    </div>
+
+    <button onclick="downloadPDF()" class="mt-6 w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Download PDF</button>
+</div>
+
+<script>
+    // Generate QR Code
+    QRCode.toCanvas(document.getElementById('qrCode'), "BoardingPass:AB123|John Doe|Seat12A", function (error) {
+        if (error) console.error(error);
+    });
+
+    // Generate Barcode
+    JsBarcode("#barcode", "BAG123456", {
+        format: "CODE128",
+        displayValue: true,
+        lineColor: "#000",
+        width: 2,
+        height: 60
+    });
+
+    // Export to PDF
+    async function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const element = document.getElementById('preview');
+        const canvas = await html2canvas(element);
+        const imgData = canvas.toDataURL("image/png");
+
+        const pdf = new jsPDF("p", "mm", "a4");
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save("boarding_pass.pdf");
+    }
+</script>
+
+            <!-- E-Ticket Form (Hidden by Default) -->
+            <!-- Boarding Pass with QR + Baggage Tag -->
+<div id="preview" class="preview-container">
+    <h2 class="preview-title">Travel Documents Preview</h2>
+    <p class="preview-instruction">Generated boarding pass and baggage tag will appear below.</p>
+
+    <!-- Boarding Pass -->
+    <div class="iata-boarding-pass mt-6">
+        <div class="iata-pass-header">
+            <div class="iata-airline">Sample Airlines</div>
+            <div class="iata-tagline">Boarding Pass</div>
+        </div>
+        <div class="flex justify-between">
+            <div class="text-left">
+                <p><strong>Passenger:</strong> <span id="previewName">John Doe</span></p>
+                <p><strong>Flight:</strong> <span id="previewFlight">AB123</span></p>
+                <p><strong>From:</strong> <span id="previewFrom">JFK</span> → <span id="previewTo">LAX</span></p>
+                <p><strong>Seat:</strong> <span id="previewSeat">12A</span></p>
+            </div>
+            <canvas id="qrCode"></canvas>
+        </div>
+    </div>
+
+    <!-- Baggage Tag -->
+    <div class="baggage-tag-preview mt-6">
+        <h3 class="font-bold text-lg mb-2">Baggage Tag</h3>
+        <div class="flex justify-between">
+            <div class="text-left">
+                <p><strong>Bag ID:</strong> <span id="previewBag">BAG123456</span></p>
+                <p><strong>Route:</strong> <span id="previewFrom2">JFK</span> → <span id="previewTo2">LAX</span></p>
+            </div>
+            <svg id="barcode"></svg>
+        </div>
+    </div>
+
+    <!-- Download Button -->
+    <button onclick="downloadPDF()" class="download-btn w-full">Download PDF</button>
+</div>
+
+<script>
+    // Generate QR Code for boarding pass
+    QRCode.toCanvas(document.getElementById('qrCode'), "BoardingPass|AB123|John Doe|Seat12A", function (error) {
+        if (error) console.error(error);
+    });
+
+    // Generate Barcode for baggage tag
+    JsBarcode("#barcode", "BAG123456", {
+        format: "CODE128",
+        displayValue: true,
+        lineColor: "#000",
+        width: 2,
+        height: 60
+    });
+
+    // Export to PDF
+    async function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const element = document.getElementById('preview');
+        const canvas = await html2canvas(element);
+        const imgData = canvas.toDataURL("image/png");
+
+        const pdf = new jsPDF("p", "mm", "a4");
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save("travel_documents.pdf");
+    }
+</script>
+
+            <!-- Baggage Tag Form (Hidden by Default) -->
+           <!-- IATA Boarding Pass -->
+<div class="iata-boarding-pass mt-6">
+    <!-- Header -->
+    <div class="iata-pass-header">
+        <div class="iata-airline">Sample Airlines</div>
+        <div class="iata-tagline">Your Journey Begins</div>
+        <div class="iata-pass-title">Boarding Pass</div>
+    </div>
+
+    <!-- Route Section -->
+    <div class="iata-route-section">
+        <div class="iata-airport">
+            <div class="iata-airport-label">From</div>
+            <div class="iata-airport-code" id="fromCode">JFK</div>
+            <div class="iata-airport-city" id="fromCity">New York</div>
+            <div class="iata-airport-terminal">T4</div>
+        </div>
+        <div class="text-3xl font-bold">→</div>
+        <div class="iata-airport">
+            <div class="iata-airport-label">To</div>
+            <div class="iata-airport-code" id="toCode">LAX</div>
+            <div class="iata-airport-city" id="toCity">Los Angeles</div>
+            <div class="iata-airport-terminal">T6</div>
+        </div>
+    </div>
+
+    <!-- Flight Info Grid -->
+    <div class="iata-flight-info">
+        <div class="iata-info-item">
+            <div class="iata-info-label">Flight</div>
+            <div class="iata-info-value" id="flightNo">AB123</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Date</div>
+            <div class="iata-info-value" id="flightDate">24 SEP 2025</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Gate</div>
+            <div class="iata-info-value" id="gate">C12</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Seat</div>
+            <div class="iata-info-value" id="seat">12A</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Boarding</div>
+            <div class="iata-info-value" id="boardingTime">15:45</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Passenger</div>
+            <div class="iata-info-value" id="passengerName">John Doe</div>
+        </div>
+    </div>
+
+    <!-- QR Code -->
+    <div class="flex justify-center mt-4">
+        <canvas id="qrCode"></canvas>
+    </div>
+</div>
+
+<!-- Baggage Tag -->
+<div class="baggage-tag-preview mt-6">
+    <h3 class="font-bold text-lg mb-2">Baggage Tag</h3>
+    <div class="flex justify-between items-center">
+        <div class="text-left">
+            <p><strong>Bag ID:</strong> <span id="bagId">BAG123456</span></p>
+            <p><strong>Route:</strong> <span id="fromCode2">JFK</span> → <span id="toCode2">LAX</span></p>
+        </div>
+        <svg id="barcode"></svg>
+    </div>
+</div>
+ 
+            <!-- Mobile Pass Preview -->
+            <!-- IATA Boarding Pass -->
+<div class="iata-boarding-pass mt-6">
+    <!-- Header -->
+    <div class="iata-pass-header">
+        <div class="iata-airline">Sample Airlines</div>
+        <div class="iata-tagline">Your Journey Begins</div>
+        <div class="iata-pass-title">Boarding Pass</div>
+    </div>
+
+    <!-- Route Section -->
+    <div class="iata-route-section">
+        <div class="iata-airport">
+            <div class="iata-airport-label">From</div>
+            <div class="iata-airport-code" id="fromCode">JFK</div>
+            <div class="iata-airport-city" id="fromCity">New York</div>
+            <div class="iata-airport-terminal">T4</div>
+        </div>
+        <div class="text-3xl font-bold">→</div>
+        <div class="iata-airport">
+            <div class="iata-airport-label">To</div>
+            <div class="iata-airport-code" id="toCode">LAX</div>
+            <div class="iata-airport-city" id="toCity">Los Angeles</div>
+            <div class="iata-airport-terminal">T6</div>
+        </div>
+    </div>
+
+    <!-- Flight Info Grid -->
+    <div class="iata-flight-info">
+        <div class="iata-info-item">
+            <div class="iata-info-label">Flight</div>
+            <div class="iata-info-value" id="flightNo">AB123</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Date</div>
+            <div class="iata-info-value" id="flightDate">24 SEP 2025</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Gate</div>
+            <div class="iata-info-value" id="gate">C12</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Seat</div>
+            <div class="iata-info-value" id="seat">12A</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Boarding</div>
+            <div class="iata-info-value" id="boardingTime">15:45</div>
+        </div>
+        <div class="iata-info-item">
+            <div class="iata-info-label">Passenger</div>
+            <div class="iata-info-value" id="passengerName">John Doe</div>
+        </div>
+    </div>
+
+    <!-- QR Code -->
+    <div class="flex justify-center mt-4">
+        <canvas id="qrCode"></canvas>
+    </div>
+</div>
+
+<!-- Baggage Tag -->
+<div class="baggage-tag-preview mt-6">
+    <h3 class="font-bold text-lg mb-2">Baggage Tag</h3>
+    <div class="flex justify-between items-center">
+        <div class="text-left">
+            <p><strong>Bag ID:</strong> <span id="bagId">BAG123456</span></p>
+            <p><strong>Route:</strong> <span id="fromCode2">JFK</span> → <span id="toCode2">LAX</span></p>
+        </div>
+        <svg id="barcode"></svg>
+    </div>
+</div>
+
+            
+            <!-- E-Ticket Preview -->
+            <!-- Boarding Pass Layout -->
+<div class="iata-boarding-pass mt-6">
+  <div class="iata-pass-header">
+    <div class="iata-airline">Sample Airlines</div>
+    <div class="iata-pass-title">Boarding Pass</div>
+  </div>
+
+  <!-- Flight Route + Times -->
+  <div class="iata-route-section">
+    <div class="iata-time-group">
+      <div class="iata-time" id="depTime">15:45</div>
+      <div class="iata-date" id="depDate">24 SEP 2025</div>
+    </div>
+    <div class="iata-airport">
+      <div class="iata-airport-label">From</div>
+      <div class="iata-airport-code" id="fromCode">JFK</div>
+      <div class="iata-airport-city" id="fromCity">New York</div>
+    </div>
+    <div class="text-3xl font-bold">→</div>
+    <div class="iata-airport">
+      <div class="iata-airport-label">To</div>
+      <div class="iata-airport-code" id="toCode">LAX</div>
+      <div class="iata-airport-city" id="toCity">Los Angeles</div>
+    </div>
+    <div class="iata-time-group">
+      <div class="iata-time" id="arrTime">18:30</div>
+      <div class="iata-date" id="arrDate">24 SEP 2025</div>
+    </div>
+  </div>
+
+  <!-- Duration -->
+  <div class="iata-duration" id="duration">Flight Duration: 5h 45m</div>
+
+  <!-- Codes Section -->
+  <div class="iata-codes-section">
+    <!-- QR for Boarding -->
+    <div class="iata-qr-container">
+      <canvas id="qrCode" class="qr-code-container"></canvas>
+    </div>
+
+    <!-- Baggage Barcode -->
+    <div class="iata-barcode-container">
+      <svg id="barcode"></svg>
+      <div class="barcode-number" id="bagId">BAG123456</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="iata-footer">
+    Generated for demo purposes by <span class="iata-by-phonon">Phonon</span> ✈️
+  </div>
+</div>
+
+       <!-- MOBILE BOARDING PASS -->
+<div class="mobile-pass mt-6">
+  <div class="mobile-pass-header">
+    <div class="mobile-airline font-bold">Sample Airlines</div>
+    <div class="mobile-pass-title">Boarding Pass</div>
+  </div>
+
+  <div class="mobile-passenger-section">
+    <div class="mobile-passenger-name" id="mobilePassenger">John Doe</div>
+  </div>
+
+  <div class="mobile-flight-info grid">
+    <div>
+      <div class="mobile-info-label">Flight</div>
+      <div class="mobile-info-value" id="mobileFlight">AB123</div>
+    </div>
+    <div>
+      <div class="mobile-info-label">Seat</div>
+      <div class="mobile-info-value" id="mobileSeat">12A</div>
+    </div>
+    <div>
+      <div class="mobile-info-label">Gate</div>
+      <div class="mobile-info-value" id="mobileGate">C12</div>
+    </div>
+    <div>
+      <div class="mobile-info-label">Date</div>
+      <div class="mobile-info-value" id="mobileDate">24 SEP 2025</div>
+    </div>
+  </div>
+
+  <div class="mobile-codes-section flex justify-center">
+    <div class="mobile-qr-code-container">
+      <canvas id="mobileQr"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- E-TICKET -->
+<div class="e-ticket mt-6">
+  <div class="e-ticket-header">
+    <div class="e-ticket-title">E-Ticket Receipt</div>
+  </div>
+  <div class="e-ticket-body">
+    <div class="e-ticket-row">
+      <div class="e-ticket-info">
+        <div class="e-ticket-label">Passenger</div>
+        <div class="e-ticket-value">John Doe</div>
+      </div>
+      <div class="e-ticket-info">
+        <div class="e-ticket-label">Booking Ref</div>
+        <div class="e-ticket-value">XYZ123</div>
+      </div>
+    </div>
+    <div class="e-ticket-row">
+      <div class="e-ticket-info">
+        <div class="e-ticket-label">Flight</div>
+        <div class="e-ticket-value">AB123</div>
+      </div>
+      <div class="e-ticket-info">
+        <div class="e-ticket-label">Date</div>
+        <div class="e-ticket-value">24 SEP 2025</div>
+      </div>
+    </div>
+  </div>
+  <div class="e-ticket-qr-container">
+    <canvas id="eticketQr"></canvas>
+  </div>
+  <div class="e-ticket-footer">Thank you for choosing Sample Airlines ✈️</div>
+</div>
+
+<!-- BAGGAGE TAG -->
+<div class="baggage-tag-preview mt-6">
+  <div class="baggage-tag-header">
+    <div class="baggage-tag-title">Baggage Tag</div>
+  </div>
+  <div class="baggage-tag-body">
+    <div class="baggage-tag-row">
+      <div class="baggage-tag-info">
+        <div class="baggage-tag-label">Bag ID</div>
+        <div class="baggage-tag-value" id="bagId">BAG123456</div>
+      </div>
+      <div class="baggage-tag-info">
+        <div class="baggage-tag-label">Route</div>
+        <div class="baggage-tag-value" id="bagRoute">JFK → LAX</div>
+      </div>
+    </div>
+    <div class="baggage-tag-barcode-container">
+      <svg id="bagBarcode"></svg>
+    </div>
+  </div>
+  <div class="baggage-tag-footer">Checked baggage - please retain</div>
+</div>
+
+<!-- STATUS MESSAGE -->
+<div id="statusMsg" class="status-message bg-green-600">Generated successfully!</div>
+
+<script>
+  // Generate QR codes
+  QRCode.toCanvas(document.getElementById('mobileQr'), "MobilePass|AB123|John Doe|12A", err => { if(err) console.error(err) });
+  QRCode.toCanvas(document.getElementById('eticketQr'), "ETicket|XYZ123|AB123|24SEP2025", err => { if(err) console.error(err) });
+
+  // Generate baggage barcode
+  JsBarcode("#bagBarcode", "BAG123456", {
+    format: "CODE128",
+    displayValue: false,
+    lineColor: "#000",
+    width: 2,
+    height: 60
+  });
+
+  // Show status
+  function showStatus(message, color="bg-green-600") {
+    const status = document.getElementById("statusMsg");
+    status.textContent = message;
+    status.className = `status-message ${color}`;
+    status.style.opacity = "1";
+    status.style.top = "40px";
+    setTimeout(() => {
+      status.style.opacity = "0";
+      status.style.top = "20px";
+    }, 2000);
+  }
+
+  // Example call
+  showStatus("All documents generated!");
+</script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+
+<script>
+  // Mode buttons
+  const modes = {
+    boardingPass: { btn: "boardingPassBtn", form: "boardingPassForm", preview: "iataBoardingPass", title: "Your IATA Boarding Pass" },
+    mobilePass: { btn: "mobilePassBtn", form: "mobilePassForm", preview: "mobilePass", title: "Your Mobile Pass" },
+    eTicket: { btn: "eTicketBtn", form: "eTicketForm", preview: "eTicketPreview", title: "Your E-Ticket" },
+    baggageTag: { btn: "baggageTagBtn", form: "baggageTagForm", preview: "baggageTagPreview", title: "Your Baggage Tag" }
+  };
+
+  let currentMode = "boardingPass";
+
+  function switchMode(mode) {
+    currentMode = mode;
+
+    // Toggle active button
+    Object.values(modes).forEach(m => {
+      document.getElementById(m.btn).classList.remove("active");
+      document.getElementById(m.form)?.classList.add("hidden");
+      document.getElementById(m.preview)?.classList.add("hidden");
+    });
+
+    document.getElementById(modes[mode].btn).classList.add("active");
+    document.getElementById(modes[mode].form)?.classList.remove("hidden");
+    document.getElementById(modes[mode].preview)?.classList.remove("hidden");
+    document.getElementById("previewTitle").textContent = modes[mode].title;
+  }
+
+  // Attach mode switching
+  Object.keys(modes).forEach(mode => {
+    document.getElementById(modes[mode].btn).addEventListener("click", () => switchMode(mode));
+  });
+
+  // Status message
+  function showStatus(message, type = "success") {
+    const msg = document.getElementById("statusMessage");
+    msg.textContent = message;
+    msg.className = `status-message ${type} show`;
+    setTimeout(() => msg.classList.remove("show"), 2000);
+  }
+
+  // Generate button
+  document.getElementById("generateBtn").addEventListener("click", () => {
+    if (currentMode === "boardingPass") {
+      generateBoardingPass();
+    } else if (currentMode === "mobilePass") {
+      generateMobilePass();
+    } else if (currentMode === "eTicket") {
+      generateETicket();
+    } else if (currentMode === "baggageTag") {
+      generateBaggageTag();
+    }
+  });
+
+  // Example: Generate Boarding Pass
+  function generateBoardingPass() {
+    const fn = document.getElementById("firstName").value || "John";
+    const ln = document.getElementById("lastName").value || "Doe";
+    const passenger = `${fn} ${ln}`.toUpperCase();
+
+    document.getElementById("iataPassenger").textContent = passenger;
+    document.getElementById("iataFlight").textContent = document.getElementById("flight").value || "PR2727";
+    document.getElementById("iataSeat").textContent = document.getElementById("seat").value || "17A";
+    document.getElementById("iataGate").textContent = document.getElementById("gate").value || "07";
+    document.getElementById("iataPnr").textContent = document.getElementById("pnr").value || "ABC123";
+
+    // QR
+    QRCode.toCanvas(document.getElementById("iataQrCode"), passenger, err => { if (err) console.error(err); });
+    
+    // Barcode
+    JsBarcode("#iataBarcode", document.getElementById("pnr").value || "ABC123", {
+      format: "CODE128",
+      displayValue: false,
+      width: 2,
+      height: 60
+    });
+    document.getElementById("iataBarcodeNumber").textContent = document.getElementById("pnr").value || "ABC123";
+
+    showStatus("Boarding pass generated!", "success");
+  }
+
+  // TODO: similar generateMobilePass(), generateETicket(), generateBaggageTag()
+</script>
+<script>
+  function generateMobilePass() {
+    const fn = document.getElementById("firstName").value || "John";
+    const ln = document.getElementById("lastName").value || "Doe";
+    const passenger = `${fn} ${ln}`.toUpperCase();
+
+    // Route
+    document.getElementById("mobileFrom").textContent = document.getElementById("from").value || "PHIL";
+    document.getElementById("mobileFromCity").textContent = document.getElementById("fromCity").value || "PHILADELPHIA";
+    document.getElementById("mobileFromTerminal").textContent = document.getElementById("fromTerminal").value || "T1";
+
+    document.getElementById("mobileTo").textContent = document.getElementById("to").value || "CEB";
+    document.getElementById("mobileToCity").textContent = document.getElementById("toCity").value || "CEBU";
+    document.getElementById("mobileToTerminal").textContent = document.getElementById("toTerminal").value || "T1";
+
+    // Times
+    document.getElementById("mobileDepartTime").textContent = document.getElementById("departTime").value || "13:15";
+    document.getElementById("mobileDepartDate").textContent = document.getElementById("departDate").value || "10 SEP";
+    document.getElementById("mobileArriveTime").textContent = document.getElementById("arriveTime").value || "15:35";
+    document.getElementById("mobileArriveDate").textContent = document.getElementById("arriveDate").value || "10 SEP";
+
+    // Duration
+    document.getElementById("mobileDuration").textContent = document.getElementById("duration").value || "2h 20m • Direct";
+
+    // Passenger + flight info
+    document.getElementById("mobilePassenger").textContent = passenger;
+    document.getElementById("mobileFlight").textContent = document.getElementById("flight").value || "PR 2727";
+    document.getElementById("mobileClass").textContent = document.getElementById("class").value || "ECONOMY";
+    document.getElementById("mobileSeat").textContent = document.getElementById("seat").value || "17A";
+    document.getElementById("mobileGate").textContent = document.getElementById("gate").value || "07";
+    document.getElementById("mobileBoarding").textContent = document.getElementById("boardingTime").value || "12:45";
+    document.getElementById("mobilePnr").textContent = document.getElementById("pnr").value || "ABC123";
+    document.getElementById("mobileSequence").textContent = document.getElementById("sequence").value || "001A";
+
+    // QR
+    QRCode.toCanvas(document.getElementById("mobileQrCode"), passenger, err => { if (err) console.error(err); });
+
+    // Barcode
+    JsBarcode("#mobileBarcode", document.getElementById("pnr").value || "ABC123", {
+      format: "CODE128",
+      displayValue: false,
+      width: 2,
+      height: 60
+    });
+    document.getElementById("mobileBarcodeNumber").textContent = document.getElementById("pnr").value || "ABC123";
+
+    showStatus("Mobile pass generated!", "success");
+  }
+
+  function generateETicket() {
+    const fn = document.getElementById("firstName").value || "John";
+    const ln = document.getElementById("lastName").value || "Doe";
+    const passenger = `${fn} ${ln}`.toUpperCase();
+
+    document.getElementById("etTicketNumber").textContent = document.getElementById("ticketNumber").value || "016 1234567890";
+    document.getElementById("etPnr").textContent = document.getElementById("pnr").value || "ABC123";
+    document.getElementById("etPassenger").textContent = passenger;
+    document.getElementById("etFlight").textContent = document.getElementById("flight").value || "PR 2727";
+    document.getElementById("etClass").textContent = document.getElementById("class").value || "ECONOMY";
+
+    const fromCity = document.getElementById("fromCity").value || "PHILADELPHIA";
+    const fromCode = document.getElementById("from").value || "PHIL";
+    const toCity = document.getElementById("toCity").value || "CEBU";
+    const toCode = document.getElementById("to").value || "CEB";
+
+    document.getElementById("etFrom").textContent = `${fromCity} (${fromCode})`;
+    document.getElementById("etTo").textContent = `${toCity} (${toCode})`;
+
+    document.getElementById("etDeparture").textContent =
+      `${document.getElementById("departDate").value || "10 SEP 2025"}, ${document.getElementById("departTime").value || "13:15"}`;
+    document.getElementById("etArrival").textContent =
+      `${document.getElementById("arriveDate").value || "10 SEP 2025"}, ${document.getElementById("arriveTime").value || "15:35"}`;
+
+    showStatus("E-Ticket generated!", "success");
+  }
+</script>

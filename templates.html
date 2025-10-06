@@ -1,0 +1,473 @@
+cat > templates/new.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boarding Pass Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-section {
+            padding: 20px;
+        }
+
+        .result-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .generate-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .generate-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .reset-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .reset-btn:hover {
+            background: #5a6268;
+        }
+
+        .result-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .passenger-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .passenger-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .flight-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .code-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .code-image {
+            max-width: 200px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+
+        .image-url {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            word-break: break-all;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✈️ Boarding Pass Generator</h1>
+            <p>Generate QR Codes and Barcodes for Boarding Passes</p>
+        </div>
+
+        <div class="app-container">
+            <!-- Form Section -->
+            <div class="form-section">
+                <div class="success-message" id="successMessage"></div>
+                <div class="error-message" id="errorMessage"></div>
+
+                <form id="boardingPassForm">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" value="Ram" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" value="Ganesh" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="flight">Flight Number</label>
+                        <input type="text" id="flight" name="flight" value="AI 202" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="from">From Airport</label>
+                        <input type="text" id="from" name="from" value="BOM" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="to">To Airport</label>
+                        <input type="text" id="to" name="to" value="DEL" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" name="date" value="2024-09-15" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="time">Time</label>
+                        <input type="time" id="time" name="time" value="14:30" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="seat">Seat Number</label>
+                        <input type="text" id="seat" name="seat" value="15B" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gate">Gate</label>
+                        <input type="text" id="gate" name="gate" value="C12" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pnr">PNR Number</label>
+                        <input type="text" id="pnr" name="pnr" value="XYZ789" required>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="generate-btn" onclick="generateQRCode()">
+                            Generate QR Code
+                        </button>
+                        <button type="button" class="generate-btn" onclick="generateBarcode()">
+                            Generate Barcode
+                        </button>
+                        <button type="reset" class="reset-btn">Reset Form</button>
+                    </div>
+                </form>
+
+                <div class="loading" id="loading">
+                    <p>Generating... Please wait</p>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            <div class="result-section">
+                <div id="resultContainer">
+                    <div class="result-card">
+                        <div class="passenger-info">
+                            <div class="passenger-name" id="resultName">JOHN DOE</div>
+                            <div class="flight-info">
+                                <div class="info-item">
+                                    <div class="info-label">Flight</div>
+                                    <div class="info-value" id="resultFlight">PH 0121</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Route</div>
+                                    <div class="info-value" id="resultRoute">BOM → DEL</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Date</div>
+                                    <div class="info-value" id="resultDate">2025-09-10</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Time</div>
+                                    <div class="info-value" id="resultTime">13:15</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Seat</div>
+                                    <div class="info-value" id="resultSeat">14A</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Gate</div>
+                                    <div class="info-value" id="resultGate">B12</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="code-section">
+                            <div id="qrCodeResult">
+                                <h3>QR Code</h3>
+                                <div class="code-image">
+                                    <img id="qrImage" src="" alt="QR Code" style="display: none; max-width: 100%;">
+                                </div>
+                                <div class="image-url" id="qrImageUrl"></div>
+                            </div>
+
+                            <div id="barcodeResult" style="margin-top: 30px;">
+                                <h3>Barcode</h3>
+                                <div class="code-image">
+                                    <img id="barcodeImage" src="" alt="Barcode" style="display: none; max-width: 100%;">
+                                </div>
+                                <div class="image-url" id="barcodeImageUrl"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showMessage(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+            element.style.background = isError ? '#f8d7da' : '#d4edda';
+            element.style.color = isError ? '#721c24' : '#155724';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        function updateResultDisplay(data, isQRCode = true) {
+            // Update passenger info
+            document.getElementById('resultName').textContent = data.passengerName;
+            document.getElementById('resultFlight').textContent = data.flight;
+            document.getElementById('resultRoute').textContent = `${data.fromAirport} → ${data.toAirport}`;
+            document.getElementById('resultDate').textContent = data.date;
+            document.getElementById('resultTime').textContent = data.time;
+            document.getElementById('resultSeat').textContent = data.seat;
+            document.getElementById('resultGate').textContent = data.gate;
+
+            if (isQRCode) {
+                // Update QR Code section
+                const qrImage = document.getElementById('qrImage');
+                const qrImageUrl = document.getElementById('qrImageUrl');
+                
+                qrImage.src = data.qrImageUrl;
+                qrImage.style.display = 'block';
+                qrImageUrl.textContent = data.qrImageUrl;
+                
+                showMessage('successMessage', 'QR Code generated successfully!');
+            } else {
+                // Update Barcode section
+                const barcodeImage = document.getElementById('barcodeImage');
+                const barcodeImageUrl = document.getElementById('barcodeImageUrl');
+                
+                barcodeImage.src = data.barcodeImageUrl;
+                barcodeImage.style.display = 'block';
+                barcodeImageUrl.textContent = data.barcodeImageUrl;
+                
+                showMessage('successMessage', 'Barcode generated successfully!');
+            }
+        }
+
+        async function generateQRCode() {
+            const form = document.getElementById('boardingPassForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/generate/qr-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateResultDisplay(result.data, true);
+                } else {
+                    showMessage('errorMessage', `Error: ${result.error}`, true);
+                }
+            } catch (error) {
+                showMessage('errorMessage', `Network error: ${error.message}`, true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function generateBarcode() {
+            const form = document.getElementById('boardingPassForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/generate/barcode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateResultDisplay(result.data, false);
+                } else {
+                    showMessage('errorMessage', `Error: ${result.error}`, true);
+                }
+            } catch (error) {
+                showMessage('errorMessage', `Network error: ${error.message}`, true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Set minimum date to today
+        document.getElementById('date').min = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
+EOF

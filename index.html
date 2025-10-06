@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IATA Travel Document Generator - India</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #003a70;
+            --secondary-color: #0056b3;
+            --accent-color: #ff6b47;
+            --dark-color: #102a43;
+            --light-bg-color: #f9f9f9;
+            --text-color: #333;
+            --light-text-color: #fff;
+            --grey-text-color: #777;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            padding: 20px;
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--light-bg-color);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: var(--primary-color);
+            color: var(--light-text-color);
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            opacity: 0.8;
+        }
+
+        .server-status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .server-status.connected {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .server-status.disconnected {
+            background: #f44336;
+            color: white;
+        }
+
+        .mobile-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+            background: var(--dark-color);
+            padding: 10px;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            background: var(--primary-color);
+            color: var(--light-text-color);
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            margin: 5px;
+            border-radius: 5px;
+        }
+
+        .mode-btn.active {
+            background: var(--accent-color);
+            box-shadow: 0 0 10px rgba(255, 107, 71, 0.5);
+        }
+
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+
+        .mobile-view .content {
+            flex-direction: column;
+        }
+
+        .form-container {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+        }
+
+        .preview-container {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            background: var(--light-bg-color);
+            border-radius: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button.generate-btn {
+            background: var(--accent-color);
+            color: var(--light-text-color);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        button.generate-btn:hover {
+            background: var(--primary-color);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .status-message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color:  #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .download-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .download-btn:hover {
+            background: var(--dark-color);
+        }
+        
+        .preview-title {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .preview-instruction {
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--grey-text-color);
+        }
+        
+        /* IATA Boarding Pass Styles */
+        .iata-boarding-pass {
+            max-width: 400px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            font-family: 'Courier New', monospace;
+            position: relative;
+        }
+        
+        .iata-pass-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px dashed #ccc;
+        }
+        
+        .iata-airline {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .iata-tagline {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        
+        .iata-pass-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        .iata-route-section {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 15px;
+            background: #f8f9fa;
+            position: relative;
+            gap: 60px;
+        }
+        
+        .iata-airport {
+            text-align: center;
+            flex: 1;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .iata-airport-label {
+            font-size: 10px;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .iata-airport-code {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            color: var(--primary-color);
+        }
+        
+        .iata-airport-city {
+            font-size: 12px;
+            color: #495057;
+            margin-bottom: 3px;
+        }
+        
+        .iata-airport-terminal {
+            font-size: 10px;
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .iata-airport-time {
+            font-size: 10px;
+            color: #6c757d;
+        }
+        
+        .horizontal-airplane {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        
+        .horizontal-airplane svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(0deg);
+        }
+        
+        .passenger-name-section {
+            padding: 10px 15px;
+            background: white;
+            text-align: center;
+            border-bottom: 1px dashed #ccc;
+        }
+        
+        .passenger-name-label {
+            font-size: 10px;
+            color: #6c757d;
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+        
+        .passenger-name-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        /* UPDATED FLIGHT DETAILS SECTION WITH BETTER SPACING */
+        .flight-details-section {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            background: white;
+            border-bottom: 1px dashed #ccc;
+            gap: 40px; /* Increased gap between left and right sections */
+        }
+        
+        .flight-left-details, .flight-right-details {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Added gap between items for better spacing */
+        }
+        
+        .flight-detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .flight-detail-label {
+            font-size: 10px;
+            color: #6c757d;
+            margin-bottom: 5px; /* Increased space between label and value */
+            font-weight: 600;
+        }
+        
+        .flight-detail-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .iata-codes-section {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-bottom: 1px dashed #ccc;
+        }
+        
+        .iata-qr-container {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            padding: 5px;
+        }
+        
+        .qr-code-container {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #eee;
+            background: white;
+        }
+        
+        .boarding-time-section {
+            padding: 8px 15px;
+            background: #f0f8ff;
+            text-align: center;
+            border-bottom: 1px dashed #ccc;
+        }
+        
+        .boarding-time-label {
+            font-size: 10px;
+            color: #6c757d;
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+        
+        .boarding-time-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .iata-footer {
+            padding: 10px 15px;
+            text-align: center;
+            background: var(--primary-color);
+            color: white;
+            font-size: 10px;
+        }
+        
+        .iata-by-phonon {
+            margin-top: 3px;
+            opacity: 0.7;
+        }
+        
+        .weather-section {
+            padding: 10px 15px;
+            background: #f0f8ff;
+            border-top: 1px dashed #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .weather-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .weather-icon {
+            font-size: 24px;
+        }
+
+        .weather-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .weather-temp {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .weather-desc {
+            font-size: 10px;
+            color: #6c757d;
+        }
+
+        .weather-location {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .weather-updated {
+            font-size: 8px;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        /* Baggage Tag Styles */
+        .baggage-tag {
+            max-width: 400px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .baggage-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            border-bottom: 2px dashed #ccc;
+        }
+        
+        .baggage-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .baggage-airline {
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+        
+        .baggage-content {
+            padding: 15px;
+        }
+        
+        .baggage-section {
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #ddd;
+        }
+        
+        .baggage-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .baggage-label {
+            font-size: 10px;
+            color: #6c757d;
+            font-weight: 600;
+        }
+        
+        .baggage-value {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .barcode-container {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+            width: 100%;
+        }
+        
+        .barcode-svg {
+            max-width: 100%;
+            height: 50px;
+        }
+
+        .baggage-footer {
+            padding: 8px 15px;
+            text-align: center;
+            background: var(--primary-color);
+            color: white;
+            font-size: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            .form-container, .preview-container {
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            
+            .mobile-view .content {
+                flex-direction: column;
+            }
+            
+            .iata-route-section {
+                gap: 40px;
+            }
+            
+            .flight-details-section {
+                gap: 20px; /* Reduced gap for mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div id="serverStatus" class="server-status">Checking Server...</div>
+            <h1>IATA Travel Document Generator - India</h1>
+            <p>Create professional travel documents with real-time weather data</p>
+            <button id="mobileToggle" class="mobile-toggle">Mobile View</button>
+        </header>
+        
+        <div class="mode-selector">
+            <button id="boardingPassBtn" class="mode-btn active">Boarding Pass</button>
+            <button id="baggageTagBtn" class="mode-btn">Baggage Tag</button>
+        </div>
+        
+        <div class="content">
+            <div class="form-container">
+                <h2 id="formTitle">Passenger & Flight Details</h2>
+                
+                <!-- Boarding Pass Form -->
+                <div id="boardingPassForm">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" placeholder="Rahul" value="Rahul">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" placeholder="Sharma" value="Sharma">
+                    </div>
+                    <div class="form-group">
+                        <label for="pnr">PNR Number</label>
+                        <input type="text" id="pnr" placeholder="ABC123" maxlength="6" value="ABC123">
+                    </div>
+                    <div class="form-group">
+                        <label for="flight">Flight Number</label>
+                        <input type="text" id="flight" placeholder="AI 2727" value="AI 2727">
+                    </div>
+                    <div class="form-group">
+                        <label for="from">From (Airport Code)</label>
+                        <select id="from">
+                            <option value="DEL">DEL - Delhi</option>
+                            <option value="BOM" selected>BOM - Mumbai</option>
+                            <option value="BLR">BLR - Bangalore</option>
+                            <option value="MAA">MAA - Chennai</option>
+                            <option value="HYD">HYD - Hyderabad</option>
+                            <option value="CCU">CCU - Kolkata</option>
+                            <option value="AMD">AMD - Ahmedabad</option>
+                            <option value="GOI">GOI - Goa</option>
+                            <option value="PNQ">PNQ - Pune</option>
+                            <option value="COK">COK - Kochi</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fromTerminal">From Terminal</label>
+                        <input type="text" id="fromTerminal" placeholder="T1" value="T1">
+                    </div>
+                    <div class="form-group">
+                        <label for="to">To (Airport Code)</label>
+                        <select id="to">
+                            <option value="BOM">BOM - Mumbai</option>
+                            <option value="DEL" selected>DEL - Delhi</option>
+                            <option value="BLR">BLR - Bangalore</option>
+                            <option value="MAA">MAA - Chennai</option>
+                            <option value="HYD">HYD - Hyderabad</option>
+                            <option value="CCU">CCU - Kolkata</option>
+                            <option value="AMD">AMD - Ahmedabad</option>
+                            <option value="GOI">GOI - Goa</option>
+                            <option value="PNQ">PNQ - Pune</option>
+                            <option value="COK">COK - Kochi</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="toTerminal">To Terminal</label>
+                        <input type="text" id="toTerminal" placeholder="T1" value="T1">
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Departure Date</label>
+                        <input type="date" id="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="time">Departure Time</label>
+                        <input type="time" id="time" value="13:15">
+                    </div>
+                    <div class="form-group">
+                        <label for="arrivalDate">Arrival Date</label>
+                        <input type="date" id="arrivalDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="arrivalTime">Arrival Time</label>
+                        <input type="time" id="arrivalTime" value="15:35">
+                    </div>
+                    <div class="form-group">
+                        <label for="boardingTime">Boarding Time</label>
+                        <input type="time" id="boardingTime" value="12:45">
+                    </div>
+                    <div class="form-group">
+                        <label for="seat">Seat</label>
+                        <input type="text" id="seat" placeholder="17A" value="17A">
+                    </div>
+                    <div class="form-group">
+                        <label for="class">Class</label>
+                        <select id="class">
+                            <option value="Y">Economy (Y)</option>
+                            <option value="W">Premium Economy (W)</option>
+                            <option value="J">Business (J)</option>
+                            <option value="F">First (F)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sequence">Sequence Number</label>
+                        <input type="text" id="sequence" placeholder="001A" value="001A">
+                    </div>
+                    <div class="form-group">
+                        <label for="gate">Gate</label>
+                        <input type="text" id="gate" placeholder="07" value="07">
+                    </div>
+                </div>
+                
+                <!-- Baggage Tag Form -->
+                <div id="baggageTagForm" class="hidden">
+                    <div class="form-group">
+                        <label for="baggageFirstName">First Name</label>
+                        <input type="text" id="baggageFirstName" placeholder="Rahul" value="Rahul">
+                    </div>
+                    <div class="form-group">
+                        <label for="baggageLastName">Last Name</label>
+                        <input type="text" id="baggageLastName" placeholder="Sharma" value="Sharma">
+                    </div>
+                    <div class="form-group">
+                        <label for="baggageFlight">Flight Number</label>
+                        <input type="text" id="baggageFlight" placeholder="AI 2727" value="AI 2727">
+                    </div>
+                    <div class="form-group">
+                        <label for="baggageFrom">From (Airport Code)</label>
+                        <select id="baggageFrom">
+                            <option value="DEL">DEL - Delhi</option>
+                            <option value="BOM" selected>BOM - Mumbai</option>
+                            <option value="BLR">BLR - Bangalore</option>
+                            <option value="MAA">MAA - Chennai</option>
+                            <option value="HYD">HYD - Hyderabad</option>
+                            <option value="CCU">CCU - Kolkata</option>
+                            <option value="AMD">AMD - Ahmedabad</option>
+                            <option value="GOI">GOI - Goa</option>
+                            <option value="PNQ">PNQ - Pune</option>
+                            <option value="COK">COK - Kochi</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="baggageTo">To (Airport Code)</label>
+                        <select id="baggageTo">
+                            <option value="BOM">BOM - Mumbai</option>
+                            <option value="DEL" selected>DEL - Delhi</option>
+                            <option value="BLR">BLR - Bangalore</option>
+                            <option value="MAA">MAA - Chennai</option>
+                            <option value="HYD">HYD - Hyderabad</option>
+                            <option value="CCU">CCU - Kolkata</option>
+                            <option value="AMD">AMD - Ahmedabad</option>
+                            <option value="GOI">GOI - Goa</option>
+                            <option value="PNQ">PNQ - Pune</option>
+                            <option value="COK">COK - Kochi</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="baggageDate">Departure Date</label>
+                        <input type="date" id="baggageDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="baggageTagNumber">Baggage Tag Number</label>
+                        <input type="text" id="baggageTagNumber" placeholder="BOMAI272712345" value="BOMAI272712345">
+                    </div>
+                    <div class="form-group">
+                        <label for="baggageWeight">Weight (kg)</label>
+                        <input type="number" id="baggageWeight" placeholder="23" value="23">
+                    </div>
+                    <div class="form-group">
+                        <label for="baggagePieces">Number of Pieces</label>
+                        <input type="number" id="baggagePieces" placeholder="1" value="1" min="1" max="5">
+                    </div>
+                </div>
+                
+                <button class="generate-btn" id="generateBtn">Generate Document</button>
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+            
+            <div class="preview-container">
+                <h2 id="previewTitle" class="preview-title">Your IATA Boarding Pass</h2>
+                <p id="previewInstruction" class="preview-instruction">Fill out the form and click "Generate Document" to see a preview.</p>
+                
+                <!-- IATA Boarding Pass Preview -->
+                <div id="iataBoardingPass" class="iata-boarding-pass">
+                    <div class="iata-pass-header">
+                        <div class="iata-airline">22 NORTH</div>
+                        <div class="iata-tagline">Connecting Incredible India</div>
+                        <div class="iata-pass-title">BOARDING PASS</div>
+                    </div>
+                    
+                    <div class="iata-route-section">
+                        <div class="iata-airport">
+                            <div class="iata-airport-label">FROM</div>
+                            <div class="iata-airport-code" id="iataFrom">BOM</div>
+                            <div class="iata-airport-city" id="iataFromCity">MUMBAI</div>
+                            <div class="iata-airport-terminal" id="iataFromTerminal">Terminal T1</div>
+                            <div class="iata-airport-time" id="iataFromTime">10 SEP 13:15</div>
+                        </div>
+                        
+                        <div class="horizontal-airplane">
+                            <svg viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M22 16V14L13.5 9V3.5C13.5 2.67 12.83 2 12 2C11.17 2 10.5 2.67 10.5 3.5V9L2 14V16L10.5 13.5V19L8 20.5V22L12 21L16 22V20.5L13.5 19V13.5L22 16Z" fill="#183D5E"/>
+                            </svg>
+                        </div>
+                        
+                        <div class="iata-airport">
+                            <div class="iata-airport-label">TO</div>
+                            <div class="iata-airport-code" id="iataTo">DEL</div>
+                            <div class="iata-airport-city" id="iataToCity">DELHI</div>
+                            <div class="iata-airport-terminal" id="iataToTerminal">Terminal T1</div>
+                            <div class="iata-airport-time" id="iataToTime">10 SEP 15:35</div>
+                        </div>
+                    </div>
+                    
+                    <div class="boarding-time-section">
+                        <div class="boarding-time-label">BOARDING TIME</div>
+                        <div class="boarding-time-value" id="iataBoarding">12:45</div>
+                    </div>
+                    
+                    <div class="passenger-name-section">
+                        <div class="passenger-name-label">PASSENGER</div>
+                        <div class="passenger-name-value" id="iataPassenger">RAHUL SHARMA</div>
+                    </div>
+                    
+                    <div class="flight-details-section">
+                        <div class="flight-left-details">
+                            <div class="flight-detail-item">
+                                <div class="flight-detail-label">FLIGHT</div>
+                                <div class="flight-detail-value" id="iataFlight">AI 2727</div>
+                            </div>
+                            <div class="flight-detail-item">
+                                <div class="flight-detail-label">PNR</div>
+                                <div class="flight-detail-value" id="iataPnr">ABC123</div>
+                            </div>
+                            <div class="flight-detail-item">
+                                <div class="flight-detail-label">GATE</div>
+                                <div class="flight-detail-value" id="iataGate">07</div>
+                            </div>
+                        </div>
+                        <div class="flight-right-details">
+                            <div class="flight-detail-item">
+                                <div class="flight-detail-label">SEAT</div>
+                                <div class="flight-detail-value" id="iataSeat">17A</div>
+                            </div>
+                            <div class="flight-detail-item">
+                                <div class="flight-detail-label">SEQ</div>
+                                <div class="flight-detail-value" id="iataSequence">001A</div>
+                            </div>
+                            <div class="flight-detail-item">
+                                <div class="flight-detail-label">CLASS</div>
+                                <div class="flight-detail-value" id="iataClass">ECONOMY</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="iata-codes-section">
+                        <div class="iata-qr-container">
+                            <canvas id="iataQrCode" class="qr-code-container"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="weather-section">
+                        <div class="weather-info">
+                            <div class="weather-icon" id="weatherIcon">☀️</div>
+                            <div class="weather-details">
+                                <div class="weather-temp" id="weatherTemp">32°C</div>
+                                <div class="weather-desc" id="weatherDesc">Sunny</div>
+                                <div class="weather-updated" id="weatherUpdated">Updated: Just now</div>
+                            </div>
+                        </div>
+                        <div class="weather-location" id="weatherLocation">Delhi</div>
+                    </div>
+                    
+                    <div class="iata-footer">
+                        <div>IATA STANDARD BOARDING PASS</div>
+                        <div class="iata-by-phonon">22 NORTH Powered by PHONON </div>
+                    </div>
+                </div>
+                
+                <!-- Baggage Tag Preview -->
+                <div id="baggageTag" class="baggage-tag hidden">
+                    <div class="baggage-header">
+                        <div class="baggage-title">BAGGAGE TAG</div>
+                        <div class="baggage-airline">22 NORTH</div>
+                    </div>
+                    <div class="baggage-content">
+                        <div class="baggage-section">
+                            <div class="baggage-row">
+                                <div class="baggage-label">PASSENGER:</div>
+                                <div class="baggage-value" id="baggagePassenger">RAHUL SHARMA</div>
+                            </div>
+                            <div class="baggage-row">
+                                <div class="baggage-label">FLIGHT:</div>
+                                <div class="baggage-value" id="baggageFlightDisplay">AI 2727</div>
+                            </div>
+                            <div class="baggage-row">
+                                <div class="baggage-label">FROM:</div>
+                                <div class="baggage-value" id="baggageFromDisplay">BOM</div>
+                            </div>
+                            <div class="baggage-row">
+                                <div class="baggage-label">TO:</div>
+                                <div class="baggage-value" id="baggageToDisplay">DEL</div>
+                            </div>
+                            <div class="baggage-row">
+                                <div class="baggage-label">DATE:</div>
+                                <div class="baggage-value" id="baggageDateDisplay">10 SEP</div>
+                            </div>
+                        </div>
+                        
+                        <div class="baggage-section">
+                            <div class="baggage-row">
+                                <div class="baggage-label">TAG NUMBER:</div>
+                                <div class="baggage-value" id="baggageTagNumberDisplay">BOMAI272712345</div>
+                            </div>
+                            <div class="baggage-row">
+                                <div class="baggage-label">WEIGHT:</div>
+                                <div class="baggage-value" id="baggageWeightDisplay">23 KG</div>
+                            </div>
+                            <div class="baggage-row">
+                                <div class="baggage-label">PIECES:</div>
+                                <div class="baggage-value" id="baggagePiecesDisplay">1</div>
+                            </div>
+                        </div>
+                        
+                        <div class="barcode-container">
+                            <svg id="baggageBarcode" class="barcode-svg"></svg>
+                        </div>
+                        
+                        <div class="baggage-section">
+                            <div class="baggage-row">
+                                <div class="baggage-label">FINAL DESTINATION:</div>
+                                <div class="baggage-value" id="baggageFinalDestination">DEL - DELHI</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="baggage-footer">
+                        <div>KEEP THIS TAG FOR IDENTIFICATION</div>
+                    </div>
+                </div>
+                
+                <button id="downloadPdf" class="download-btn">
+                    📄 Download as PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize jsPDF
+        window.jsPDF = window.jspdf.jsPDF;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Server status element
+            const serverStatus = document.getElementById('serverStatus');
+            
+            // Check server health on load
+            checkServerHealth();
+            
+            // Mode selection elements
+            const boardingPassBtn = document.getElementById('boardingPassBtn');
+            const baggageTagBtn = document.getElementById('baggageTagBtn');
+            const mobileToggleBtn = document.getElementById('mobileToggle');
+            
+            const boardingPassForm = document.getElementById('boardingPassForm');
+            const baggageTagForm = document.getElementById('baggageTagForm');
+            
+            const iataBoardingPass = document.getElementById('iataBoardingPass');
+            const baggageTag = document.getElementById('baggageTag');
+            
+            const formTitle = document.getElementById('formTitle');
+            const previewTitle = document.getElementById('previewTitle');
+            const previewInstruction = document.getElementById('previewInstruction');
+            
+            const downloadPdfBtn = document.getElementById('downloadPdf');
+            const container = document.querySelector('.container');
+            
+            // Set current mode
+            let currentMode = 'boardingPass';
+            
+            // Check server health function
+            async function checkServerHealth() {
+                try {
+                    // Simulate server check
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    serverStatus.textContent = 'Server Connected';
+                    serverStatus.className = 'server-status connected';
+                } catch (error) {
+                    serverStatus.textContent = 'Server Disconnected';
+                    serverStatus.className = 'server-status disconnected';
+                    console.error('Server health check failed:', error);
+                }
+            }
+            
+            // Mode selection
+            boardingPassBtn.addEventListener('click', function() {
+                setMode('boardingPass');
+            });
+            
+            baggageTagBtn.addEventListener('click', function() {
+                setMode('baggageTag');
+            });
+            
+            // Set mode function
+            function setMode(mode) {
+                currentMode = mode;
+                
+                // Update active button
+                boardingPassBtn.classList.remove('active');
+                baggageTagBtn.classList.remove('active');
+                
+                // Hide all forms and previews
+                boardingPassForm.classList.add('hidden');
+                baggageTagForm.classList.add('hidden');
+                
+                iataBoardingPass.classList.add('hidden');
+                baggageTag.classList.add('hidden');
+                
+                // Show selected form and preview
+                if (mode === 'boardingPass') {
+                    boardingPassBtn.classList.add('active');
+                    boardingPassForm.classList.remove('hidden');
+                    iataBoardingPass.classList.remove('hidden');
+                    formTitle.textContent = 'Passenger & Flight Details';
+                    previewTitle.textContent = 'Your IATA Boarding Pass';
+                } else if (mode === 'baggageTag') {
+                    baggageTagBtn.classList.add('active');
+                    baggageTagForm.classList.remove('hidden');
+                    baggageTag.classList.remove('hidden');
+                    formTitle.textContent = 'Baggage Details';
+                    previewTitle.textContent = 'Your Baggage Tag';
+                }
+                
+                // Generate document for the current mode
+                generateDocument();
+            }
+            
+            // Mobile view toggle
+            mobileToggleBtn.addEventListener('click', function() {
+                container.classList.toggle('mobile-view');
+                if (container.classList.contains('mobile-view')) {
+                    mobileToggleBtn.textContent = 'Desktop View';
+                } else {
+                    mobileToggleBtn.textContent = 'Mobile View';
+                }
+            });
+            
+            // Indian Airport code to city mapping
+            const airportCities = {
+                'DEL': 'DELHI',
+                'BOM': 'MUMBAI',
+                'BLR': 'BANGALORE',
+                'MAA': 'CHENNAI',
+                'HYD': 'HYDERABAD',
+                'CCU': 'KOLKATA',
+                'AMD': 'AHMEDABAD',
+                'GOI': 'GOA',
+                'PNQ': 'PUNE',
+                'COK': 'KOCHI'
+            };
+            
+            // Generate document functionality
+            const generateBtn = document.getElementById('generateBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            generateBtn.addEventListener('click', async function() {
+                try {
+                    generateBtn.disabled = true;
+                    generateBtn.textContent = 'Generating...';
+                    
+                    await generateDocument();
+                    
+                    // Show success message
+                    showStatus('Document generated successfully!', 'success');
+                    
+                    // Hide instruction text
+                    previewInstruction.style.display = 'none';
+                } catch (error) {
+                    showStatus('Error generating document: ' + error.message, 'error');
+                } finally {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate Document';
+                }
+            });
+            
+            // Function to fetch weather data from API
+            async function fetchWeatherData(cityCode) {
+                try {
+                    // Simulate API call with fallback data
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Return mock weather data
+                    return {
+                        temperature: Math.floor(Math.random() * 15) + 20,
+                        description: 'Sunny',
+                        emoji: '☀️',
+                        city: airportCities[cityCode] || cityCode,
+                        timestamp: new Date().toISOString()
+                    };
+                } catch (error) {
+                    console.error('Weather API Error:', error);
+                    // Fallback data
+                    return {
+                        temperature: 25,
+                        description: 'Weather unavailable',
+                        emoji: '🌤️',
+                        city: airportCities[cityCode] || cityCode,
+                        timestamp: new Date().toISOString()
+                    };
+                }
+            }
+            
+            // Function to update weather information
+            async function updateWeather(destinationCode) {
+                try {
+                    const weather = await fetchWeatherData(destinationCode);
+                    const updatedTime = new Date(weather.timestamp).toLocaleTimeString();
+                    
+                    document.getElementById('weatherIcon').textContent = weather.emoji;
+                    document.getElementById('weatherTemp').textContent = `${weather.temperature}°C`;
+                    document.getElementById('weatherDesc').textContent = weather.description;
+                    document.getElementById('weatherLocation').textContent = weather.city;
+                    document.getElementById('weatherUpdated').textContent = `Updated: ${updatedTime}`;
+                    
+                    return true;
+                } catch (error) {
+                    console.error('Weather update error:', error);
+                    // Set default weather data
+                    document.getElementById('weatherIcon').textContent = '🌤️';
+                    document.getElementById('weatherTemp').textContent = '25°C';
+                    document.getElementById('weatherDesc').textContent = 'Weather unavailable';
+                    document.getElementById('weatherLocation').textContent = airportCities[destinationCode] || destinationCode;
+                    document.getElementById('weatherUpdated').textContent = 'Updated: Failed';
+                    
+                    return false;
+                }
+            }
+            
+            // Generate Document based on current mode
+            async function generateDocument() {
+                if (currentMode === 'boardingPass') {
+                    await generateBoardingPass();
+                } else if (currentMode === 'baggageTag') {
+                    await generateBaggageTag();
+                }
+            }
+            
+            // Generate Boarding Pass
+            async function generateBoardingPass() {
+                // Get form values
+                const firstName = document.getElementById('firstName').value || 'Rahul';
+                const lastName = document.getElementById('lastName').value || 'Sharma';
+                const pnr = document.getElementById('pnr').value || 'ABC123';
+                const flight = document.getElementById('flight').value || 'AI 2727';
+                const from = document.getElementById('from').value || 'BOM';
+                const fromTerminal = document.getElementById('fromTerminal').value || 'T1';
+                const to = document.getElementById('to').value || 'DEL';
+                const toTerminal = document.getElementById('toTerminal').value || 'T1';
+                const date = document.getElementById('date').value || '2025-09-10';
+                const time = document.getElementById('time').value || '13:15';
+                const arrivalDate = document.getElementById('arrivalDate').value || '2025-09-10';
+                const arrivalTime = document.getElementById('arrivalTime').value || '15:35';
+                const boardingTime = document.getElementById('boardingTime').value || '12:45';
+                const seat = document.getElementById('seat').value || '17A';
+                const flightClass = document.getElementById('class').value || 'Y';
+                const sequence = document.getElementById('sequence').value || '001A';
+                const gate = document.getElementById('gate').value || '07';
+                
+                // Format dates
+                const formattedDate = formatDateShort(date);
+                const formattedArrivalDate = formatDateShort(arrivalDate);
+                
+                // Get city names from airport codes
+                const fromCity = airportCities[from] || from;
+                const toCity = airportCities[to] || to;
+                
+                // Update IATA boarding pass preview
+                document.getElementById('iataFrom').textContent = from;
+                document.getElementById('iataFromCity').textContent = fromCity;
+                document.getElementById('iataFromTerminal').textContent = 'Terminal ' + fromTerminal;
+                document.getElementById('iataFromTime').textContent = `${formattedDate} ${formatTime(time)}`;
+                
+                document.getElementById('iataTo').textContent = to;
+                document.getElementById('iataToCity').textContent = toCity;
+                document.getElementById('iataToTerminal').textContent = 'Terminal ' + toTerminal;
+                document.getElementById('iataToTime').textContent = `${formattedArrivalDate} ${formatTime(arrivalTime)}`;
+                
+                // Passenger name (centered)
+                const passengerName = (firstName + ' ' + lastName).toUpperCase();
+                document.getElementById('iataPassenger').textContent = passengerName;
+                
+                // Flight details - UPDATED LAYOUT
+                document.getElementById('iataFlight').textContent = flight;
+                document.getElementById('iataPnr').textContent = pnr;
+                document.getElementById('iataGate').textContent = gate;
+                document.getElementById('iataSeat').textContent = seat;
+                document.getElementById('iataSequence').textContent = sequence;
+                document.getElementById('iataClass').textContent = getClassText(flightClass).toUpperCase();
+                
+                // Boarding time below airplane
+                document.getElementById('iataBoarding').textContent = formatTime(boardingTime);
+                
+                // Update weather information with real-time data
+                await updateWeather(to);
+                
+                // Generate QR code using canvas directly
+                const qrData = generateIataBarcodeData(firstName, lastName, pnr, flight, from, to, date, time, seat, flightClass, sequence);
+                await generateQRCode('iataQrCode', qrData, 100);
+            }
+            
+            // Generate Baggage Tag
+            async function generateBaggageTag() {
+                // Get form values
+                const firstName = document.getElementById('baggageFirstName').value || 'Rahul';
+                const lastName = document.getElementById('baggageLastName').value || 'Sharma';
+                const flight = document.getElementById('baggageFlight').value || 'AI 2727';
+                const from = document.getElementById('baggageFrom').value || 'BOM';
+                const to = document.getElementById('baggageTo').value || 'DEL';
+                const date = document.getElementById('baggageDate').value || '2025-09-10';
+                const tagNumber = document.getElementById('baggageTagNumber').value || 'BOMAI272712345';
+                const weight = document.getElementById('baggageWeight').value || '23';
+                const pieces = document.getElementById('baggagePieces').value || '1';
+                
+                // Format date
+                const formattedDate = formatDateShort(date);
+                
+                // Get city names from airport codes
+                const toCity = airportCities[to] || to;
+                
+                // Update Baggage Tag preview
+                const passengerName = (firstName + ' ' + lastName).toUpperCase();
+                document.getElementById('baggagePassenger').textContent = passengerName;
+                document.getElementById('baggageFlightDisplay').textContent = flight;
+                document.getElementById('baggageFromDisplay').textContent = from;
+                document.getElementById('baggageToDisplay').textContent = to;
+                document.getElementById('baggageDateDisplay').textContent = formattedDate;
+                document.getElementById('baggageTagNumberDisplay').textContent = tagNumber;
+                document.getElementById('baggageWeightDisplay').textContent = weight + ' KG';
+                document.getElementById('baggagePiecesDisplay').textContent = pieces;
+                document.getElementById('baggageFinalDestination').textContent = `${to} - ${toCity}`;
+                
+                // Generate barcode for baggage tag
+                generateBarcode('baggageBarcode', tagNumber);
+            }
+            
+            // Generate QR Code function (using canvas directly)
+            function generateQRCode(canvasId, data, size) {
+                return new Promise((resolve, reject) => {
+                    const canvas = document.getElementById(canvasId);
+                    if (!canvas) {
+                        reject(new Error('Canvas element not found: ' + canvasId));
+                        return;
+                    }
+                    
+                    // Clear the canvas first
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Ensure data is not empty
+                    if (!data || data.trim() === '') {
+                        console.error('QR Code data is empty');
+                        reject(new Error('QR Code data is empty'));
+                        return;
+                    }
+                    
+                    // Set canvas dimensions
+                    canvas.width = size;
+                    canvas.height = size;
+                    
+                    console.log('Generating QR code with data:', data);
+                    
+                    QRCode.toCanvas(canvas, data, {
+                        width: size,
+                        margin: 1,
+                        color: {
+                            dark: '#000000',
+                            light: '#ffffff'
+                        }
+                    }, function(error) {
+                        if (error) {
+                            console.error('QR Code generation error:', error);
+                            reject(error);
+                        } else {
+                            console.log('QR Code generated successfully');
+                            resolve();
+                        }
+                    });
+                });
+            }
+            
+            // Generate Barcode function
+            function generateBarcode(svgId, data) {
+                try {
+                    JsBarcode(`#${svgId}`, data, {
+                        format: "CODE128",
+                        width: 2,
+                        height: 50,
+                        displayValue: false,
+                        background: "transparent",
+                        lineColor: "#000000"
+                    });
+                } catch (error) {
+                    console.error('Barcode generation error:', error);
+                    // Fallback: show text if barcode generation fails
+                    const svg = document.getElementById(svgId);
+                    svg.innerHTML = `<text x="50%" y="50%" text-anchor="middle" alignment-baseline="middle" font-family="monospace" font-size="10">${data}</text>`;
+                }
+            }
+            
+            // Generate IATA barcode data (for QR code)
+            function generateIataBarcodeData(firstName, lastName, pnr, flight, from, to, date, time, seat, flightClass, sequence) {
+                return `M1${lastName.toUpperCase()}/${firstName.toUpperCase()} ${flight} ${from}${to} ${date.replace(/-/g, '')} ${sequence} ${flightClass} ${seat} ${pnr}`;
+            }
+            
+            // PDF Download functionality
+            downloadPdfBtn.addEventListener('click', async function() {
+                try {
+                    let elementToCapture;
+                    let filename;
+                    
+                    if (currentMode === 'boardingPass') {
+                        elementToCapture = iataBoardingPass;
+                        const firstName = document.getElementById('firstName').value || 'Rahul';
+                        const lastName = document.getElementById('lastName').value || 'Sharma';
+                        filename = `boardingPass_${firstName}_${lastName}.pdf`;
+                    } else if (currentMode === 'baggageTag') {
+                        elementToCapture = baggageTag;
+                        const firstName = document.getElementById('baggageFirstName').value || 'Rahul';
+                        const lastName = document.getElementById('baggageLastName').value || 'Sharma';
+                        filename = `baggageTag_${firstName}_${lastName}.pdf`;
+                    }
+                    
+                    // Generate PDF with improved settings
+                    await generatePDF(elementToCapture, filename);
+                    
+                    showStatus('PDF download started!', 'success');
+                } catch (error) {
+                    showStatus('Error generating PDF: ' + error.message, 'error');
+                }
+            });
+            
+            // Improved PDF generation function
+            async function generatePDF(element, filename) {
+                try {
+                    // Create a clone of the element to avoid affecting the original
+                    const elementClone = element.cloneNode(true);
+                    elementClone.style.position = 'fixed';
+                    elementClone.style.left = '0';
+                    elementClone.style.top = '0';
+                    elementClone.style.zIndex = '9999';
+                    elementClone.style.transform = 'scale(1)';
+                    document.body.appendChild(elementClone);
+                    
+                    // Ensure all images are properly loaded
+                    await waitForImages(elementClone);
+                    
+                    const canvas = await html2canvas(elementClone, {
+                        scale: 3, // Higher scale for better quality
+                        useCORS: true,
+                        allowTaint: false,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        onclone: function(clonedDoc, clonedElement) {
+                            // Ensure all styles are preserved
+                            clonedElement.style.transform = 'scale(1)';
+                        }
+                    });
+                    
+                    const imgData = canvas.toDataURL('image/png', 1.0);
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a6'
+                    });
+                    
+                    const imgWidth = 100; // A6 width in mm
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    
+                    // Calculate position to center the image
+                    const xPos = (105 - imgWidth) / 2; // A6 width is 105mm
+                    const yPos = 10;
+                    
+                    pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight);
+                    pdf.save(filename);
+                    
+                    // Clean up
+                    document.body.removeChild(elementClone);
+                    
+                } catch (error) {
+                    console.error('PDF generation error:', error);
+                    // Clean up any remaining elements
+                    const clones = document.querySelectorAll('[style*="fixed"]');
+                    clones.forEach(clone => {
+                        if (clone !== element) document.body.removeChild(clone);
+                    });
+                    throw new Error('PDF generation failed: ' + error.message);
+                }
+            }
+            
+            // Wait for images to load - IMPROVED for PDF generation
+            function waitForImages(element) {
+                return new Promise((resolve) => {
+                    const images = element.querySelectorAll('img, canvas, svg');
+                    let loadedCount = 0;
+                    const totalImages = images.length;
+                    
+                    if (totalImages === 0) {
+                        resolve();
+                        return;
+                    }
+                    
+                    // Function to check if all images are loaded
+                    function checkAllLoaded() {
+                        loadedCount++;
+                        if (loadedCount === totalImages) {
+                            resolve();
+                        }
+                    }
+                    
+                    images.forEach(img => {
+                        if (img.complete && img.naturalHeight !== 0) {
+                            checkAllLoaded();
+                        } else if (img.tagName === 'CANVAS' || img.tagName === 'SVG') {
+                            // Canvas and SVG elements are always "loaded"
+                            checkAllLoaded();
+                        } else {
+                            img.addEventListener('load', checkAllLoaded);
+                            img.addEventListener('error', checkAllLoaded);
+                        }
+                    });
+                    
+                    // Fallback timeout
+                    setTimeout(resolve, 3000);
+                });
+            }
+            
+            // Helper functions
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                const options = { day: 'numeric', month: 'short', year: 'numeric' };
+                return date.toLocaleDateString('en-US', options);
+            }
+            
+            function formatDateShort(dateString) {
+                const date = new Date(dateString);
+                const options = { day: 'numeric', month: 'short' };
+                return date.toLocaleDateString('en-US', options).toUpperCase();
+            }
+            
+            function formatTime(timeString) {
+                if (!timeString) return '';
+                const [hours, minutes] = timeString.split(':');
+                return `${hours}:${minutes}`;
+            }
+            
+            function getClassText(classCode) {
+                switch (classCode) {
+                    case 'Y': return 'Economy';
+                    case 'W': return 'Premium Economy';
+                    case 'J': return 'Business';
+                    case 'F': return 'First';
+                    default: return 'Economy';
+                }
+            }
+            
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = 'status-message show ' + type;
+                
+                setTimeout(() => {
+                    statusMessage.classList.remove('show');
+                }, 3000);
+            }
+            
+            // Set default dates
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            document.getElementById('date').value = today.toISOString().split('T')[0];
+            document.getElementById('arrivalDate').value = tomorrow.toISOString().split('T')[0];
+            document.getElementById('baggageDate').value = today.toISOString().split('T')[0];
+            
+            // Generate initial document with default values
+            generateBoardingPass();
+            previewInstruction.style.display = 'none';
+            
+            // Add event listener to update weather when destination changes
+            document.getElementById('to').addEventListener('change', function() {
+                updateWeather(this.value);
+            });
+        });
+    </script>
+</body>
+</html>

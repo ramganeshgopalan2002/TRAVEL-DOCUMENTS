@@ -1,0 +1,365 @@
+cat > setup_files.py << 'EOF'
+#!/usr/bin/env python3
+import os
+
+# Create templates directory if it doesn't exist
+os.makedirs('templates', exist_ok=True)
+os.makedirs('images', exist_ok=True)
+
+# Create qr.html file
+qr_html_content = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code & Barcode Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; padding: 20px; 
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; padding: 20px; }
+        .header h1 { font-size: 2.8rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+        @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px; }
+        input, select { width: 100%; padding: 14px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s; background: #f8f9fa; }
+        input:focus, select:focus { outline: none; border-color: #667eea; background: white; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .button-group { display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap; }
+        button { flex: 1; padding: 16px 24px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; min-width: 200px; }
+        .qr-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .qr-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .barcode-btn { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .barcode-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(245, 87, 108, 0.3); }
+        .reset-btn { background: #6c757d; color: white; }
+        .reset-btn:hover { background: #5a6268; transform: translateY(-2px); }
+        .results-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; margin-top: 30px; }
+        @media (max-width: 768px) { .results-section { grid-template-columns: 1fr; } }
+        .result-card { background: #f8f9fa; border-radius: 15px; padding: 25px; text-align: center; border: 2px dashed #dee2e6; }
+        .result-card h3 { color: #333; margin-bottom: 20px; font-size: 1.4rem; }
+        .code-image { background: white; padding: 20px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e9ecef; }
+        .code-image img { max-width: 100%; height: auto; border-radius: 5px; }
+        .image-url { background: #e9ecef; padding: 12px; border-radius: 8px; word-break: break-all; font-size: 12px; font-family: monospace; margin-top: 10px; }
+        .passenger-info { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+        .passenger-name { font-size: 1.6rem; font-weight: bold; margin-bottom: 10px; }
+        .flight-details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
+        .detail-item { text-align: center; }
+        .detail-label { font-size: 0.9rem; opacity: 0.8; margin-bottom: 5px; }
+        .detail-value { font-size: 1.1rem; font-weight: 600; }
+        .loading { display: none; text-align: center; padding: 30px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .message { padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; text-align: center; font-weight: 600; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Boarding Pass Generator</h1>
+            <p>Create Digital QR Codes & Barcodes Instantly</p>
+        </div>
+
+        <div class="card">
+            <div class="message success" id="successMessage"></div>
+            <div class="message error" id="errorMessage"></div>
+
+            <form id="boardingForm">
+                <div class="form-grid">
+                    <div class="form-group"><label for="firstName">First Name *</label><input type="text" id="firstName" name="firstName" value="Ram" required></div>
+                    <div class="form-group"><label for="lastName">Last Name *</label><input type="text" id="lastName" name="lastName" value="Ganesh" required></div>
+                    <div class="form-group"><label for="flight">Flight Number *</label><input type="text" id="flight" name="flight" value="AI 202" required></div>
+                    <div class="form-group"><label for="pnr">PNR Number *</label><input type="text" id="pnr" name="pnr" value="XYZ789" required></div>
+                    <div class="form-group"><label for="from">From Airport *</label><input type="text" id="from" name="from" value="BOM" required></div>
+                    <div class="form-group"><label for="to">To Airport *</label><input type="text" id="to" name="to" value="DEL" required></div>
+                    <div class="form-group"><label for="date">Travel Date *</label><input type="date" id="date" name="date" value="2024-09-15" required></div>
+                    <div class="form-group"><label for="time">Departure Time *</label><input type="time" id="time" name="time" value="14:30" required></div>
+                    <div class="form-group"><label for="seat">Seat Number *</label><input type="text" id="seat" name="seat" value="15B" required></div>
+                    <div class="form-group"><label for="gate">Gate Number *</label><input type="text" id="gate" name="gate" value="C12" required></div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="qr-btn" onclick="generateQRCode()">📱 Generate QR Code</button>
+                    <button type="button" class="barcode-btn" onclick="generateBarcode()">📊 Generate Barcode</button>
+                    <button type="reset" class="reset-btn">🔄 Reset Form</button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading"><div class="spinner"></div><p>Generating your boarding pass...</p></div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="result-card"><h3>QR Code</h3><div class="code-image"><img id="qrImage" src="" alt="QR Code" class="hidden"><p id="qrPlaceholder">QR code will appear here</p></div><div class="image-url" id="qrImageUrl"></div></div>
+            <div class="result-card"><h3>Barcode</h3><div class="code-image"><img id="barcodeImage" src="" alt="Barcode" class="hidden"><p id="barcodePlaceholder">Barcode will appear here</p></div><div class="image-url" id="barcodeImageUrl"></div></div>
+        </div>
+
+        <div class="card hidden" id="passengerCard">
+            <div class="passenger-info">
+                <div class="passenger-name" id="passengerName">RAM GANESH</div>
+                <div class="flight-details">
+                    <div class="detail-item"><div class="detail-label">Flight</div><div class="detail-value" id="displayFlight">AI 202</div></div>
+                    <div class="detail-item"><div class="detail-label">Route</div><div class="detail-value" id="displayRoute">BOM → DEL</div></div>
+                    <div class="detail-item"><div class="detail-label">Date & Time</div><div class="detail-value" id="displayDateTime">15 SEP 14:30</div></div>
+                    <div class="detail-item"><div class="detail-label">Seat</div><div class="detail-value" id="displaySeat">15B</div></div>
+                    <div class="detail-item"><div class="detail-label">Gate</div><div class="detail-value" id="displayGate">C12</div></div>
+                    <div class="detail-item"><div class="detail-label">PNR</div><div class="detail-value" id="displayPnr">XYZ789</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLoading(show) { document.getElementById('loading').style.display = show ? 'block' : 'none'; }
+        function showMessage(message, isError = false) {
+            const element = document.getElementById(isError ? 'errorMessage' : 'successMessage');
+            element.textContent = message; element.style.display = 'block';
+            setTimeout(() => { element.style.display = 'none'; }, 5000);
+        }
+        function updatePassengerInfo(data) {
+            document.getElementById('passengerName').textContent = data.passengerName;
+            document.getElementById('displayFlight').textContent = data.flight;
+            document.getElementById('displayRoute').textContent = `${data.fromAirport} → ${data.toAirport}`;
+            document.getElementById('displayDateTime').textContent = `${formatDate(data.date)} ${data.time}`;
+            document.getElementById('displaySeat').textContent = data.seat;
+            document.getElementById('displayGate').textContent = data.gate;
+            document.getElementById('displayPnr').textContent = data.pnr;
+            document.getElementById('passengerCard').classList.remove('hidden');
+        }
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }).toUpperCase();
+        }
+        function updateCodeDisplay(imageUrl, isQRCode = true) {
+            const imageId = isQRCode ? 'qrImage' : 'barcodeImage';
+            const placeholderId = isQRCode ? 'qrPlaceholder' : 'barcodePlaceholder';
+            const urlId = isQRCode ? 'qrImageUrl' : 'barcodeImageUrl';
+            const imageElement = document.getElementById(imageId);
+            const placeholderElement = document.getElementById(placeholderId);
+            const urlElement = document.getElementById(urlId);
+            imageElement.src = imageUrl;
+            imageElement.classList.remove('hidden');
+            placeholderElement.style.display = 'none';
+            urlElement.textContent = imageUrl;
+        }
+        async function generateQRCode() { await generateCode(true); }
+        async function generateBarcode() { await generateCode(false); }
+        async function generateCode(isQRCode) {
+            const form = document.getElementById('boardingForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            if (!data.firstName || !data.lastName || !data.flight) {
+                showMessage('Please fill in all required fields', true); return;
+            }
+            showLoading(true);
+            try {
+                const endpoint = isQRCode ? '/api/generate/qr-code' : '/api/generate/barcode';
+                const response = await fetch(endpoint, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    updatePassengerInfo(result.data);
+                    updateCodeDisplay(isQRCode ? result.data.qrImageUrl : result.data.barcodeImageUrl, isQRCode);
+                    showMessage(`${isQRCode ? 'QR Code' : 'Barcode'} generated successfully!`);
+                } else { showMessage(`Error: ${result.error}`, true); }
+            } catch (error) { showMessage(`Network error: ${error.message}`, true); }
+            finally { showLoading(false); }
+        }
+        document.getElementById('date').min = new Date().toISOString().split('T')[0];
+        document.getElementById('boardingForm').addEventListener('reset', function() {
+            document.getElementById('passengerCard').classList.add('hidden');
+            document.getElementById('qrImage').classList.add('hidden');
+            document.getElementById('barcodeImage').classList.add('hidden');
+            document.getElementById('qrPlaceholder').style.display = 'block';
+            document.getElementById('barcodePlaceholder').style.display = 'block';
+            document.getElementById('qrImageUrl').textContent = '';
+            document.getElementById('barcodeImageUrl').textContent = '';
+        });
+    </script>
+</body>
+</html>'''
+
+# Create new.py file
+new_py_content = '''from flask import Flask, render_template, request, jsonify
+import qrcode
+import barcode
+from barcode.writer import ImageWriter
+import os
+from datetime import datetime
+import uuid
+
+app = Flask(__name__)
+
+# Manual CORS handling
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
+
+# Define the images folder path
+IMAGES_FOLDER = '/home/local/CORPORATE/ramganesh.gopalan/Desktop/Final pass/Boarding_pass/images'
+BASE_URL = 'http://localhost:5000'
+
+# Ensure the images folder exists
+os.makedirs(IMAGES_FOLDER, exist_ok=True)
+
+@app.route('/')
+def index():
+    return render_template('qr.html')
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'success': True,
+        'message': 'Travel Document Generator API is running'
+    })
+
+@app.route('/api/generate/qr-code', methods=['POST'])
+def generate_qr_code():
+    try:
+        data = request.json or {}
+        first_name = data.get('firstName', 'John')
+        last_name = data.get('lastName', 'Doe')
+        flight = data.get('flight', 'AI 202')
+        from_airport = data.get('from', 'BOM')
+        to_airport = data.get('to', 'DEL')
+        date = data.get('date', '2024-09-15')
+        time = data.get('time', '14:30')
+        seat = data.get('seat', '15B')
+        gate = data.get('gate', 'C12')
+        pnr = data.get('pnr', 'XYZ789')
+
+        qr_data = f"BOARDING PASS\\\\nPassenger: {first_name} {last_name}\\\\nFlight: {flight}\\\\nFrom: {from_airport}\\\\nTo: {to_airport}\\\\nDate: {date}\\\\nTime: {time}\\\\nSeat: {seat}\\\\nGate: {gate}\\\\nPNR: {pnr}"
+
+        # Generate QR code
+        qr_img = qrcode.make(qr_data)
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        filename = f"qr_code_{timestamp}_{unique_id}.png"
+        filepath = os.path.join(IMAGES_FOLDER, filename)
+        
+        # Save QR code to file
+        qr_img.save(filepath)
+        
+        # Generate full image URL
+        image_url = f"{BASE_URL}/images/{filename}"
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'passengerName': f"{first_name} {last_name}".upper(),
+                'flight': flight,
+                'fromAirport': from_airport,
+                'toAirport': to_airport,
+                'date': date,
+                'time': time,
+                'seat': seat,
+                'gate': gate,
+                'pnr': pnr,
+                'qrImageUrl': image_url,
+                'filename': filename
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/generate/barcode', methods=['POST'])
+def generate_barcode():
+    try:
+        data = request.json or {}
+        first_name = data.get('firstName', 'John')
+        last_name = data.get('lastName', 'Doe')
+        flight = data.get('flight', 'AI 202')
+        from_airport = data.get('from', 'BOM')
+        to_airport = data.get('to', 'DEL')
+        date = data.get('date', '2024-09-15')
+        time = data.get('time', '14:30')
+        seat = data.get('seat', '15B')
+        gate = data.get('gate', 'C12')
+        pnr = data.get('pnr', 'XYZ789')
+
+        # Create barcode data (using PNR as barcode content)
+        barcode_data = pnr
+        
+        # Generate barcode (using Code128 format)
+        barcode_class = barcode.get_barcode_class('code128')
+        barcode_img = barcode_class(barcode_data, writer=ImageWriter())
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        filename = f"barcode_{timestamp}_{unique_id}.png"
+        filepath = os.path.join(IMAGES_FOLDER, filename)
+        
+        # Save barcode to file
+        barcode_img.save(filepath)
+        
+        # Generate full image URL
+        image_url = f"{BASE_URL}/images/{filename}"
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'passengerName': f"{first_name} {last_name}".upper(),
+                'flight': flight,
+                'fromAirport': from_airport,
+                'toAirport': to_airport,
+                'date': date,
+                'time': time,
+                'seat': seat,
+                'gate': gate,
+                'pnr': pnr,
+                'barcodeImageUrl': image_url,
+                'filename': filename
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Add route to serve static images
+@app.route('/images/<filename>')
+def serve_image(filename):
+    try:
+        return app.send_static_file(filename)
+    except:
+        return jsonify({'error': 'Image not found'}), 404
+
+if __name__ == '__main__':
+    # Configure static folder for serving images
+    app.static_folder = IMAGES_FOLDER
+    app.static_url_path = '/images'
+    
+    print("🎫 Boarding Pass Generator Starting...")
+    print("📍 Server running on: http://localhost:5000")
+    print("📁 Images saved to:", IMAGES_FOLDER)
+    app.run(debug=True, host='0.0.0.0', port=5000)
+'''
+
+# Write the files
+with open('templates/qr.html', 'w') as f:
+    f.write(qr_html_content)
+
+with open('new.py', 'w') as f:
+    f.write(new_py_content)
+
+print("✅ Files created successfully!")
+print("📁 templates/qr.html created")
+print("🐍 new.py created")
+print("🎯 Now run: python new.py")
+EOF
+
+# Run the setup script
+python setup_files.py

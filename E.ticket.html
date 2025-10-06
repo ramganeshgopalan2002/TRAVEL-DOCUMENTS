@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Ticket Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: #003a70;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            opacity: 0.8;
+        }
+
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+
+        .form-container {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+        }
+
+        .preview-container {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button.generate-btn {
+            background: #ff6b47;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        button.generate-btn:hover {
+            background: #003a70;
+        }
+
+        .status-message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* E-Ticket Styles */
+        .e-ticket {
+            max-width: 350px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            border: 1px solid #ddd;
+        }
+        
+        .e-ticket-header {
+            background: #003a70;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #ccc;
+        }
+        
+        .e-ticket-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .e-ticket-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .e-ticket-content {
+            padding: 15px;
+        }
+        
+        .e-ticket-section {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ddd;
+        }
+        
+        .e-ticket-section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #003a70;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .e-ticket-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+        
+        .e-ticket-label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 600;
+            width: 120px;
+            flex-shrink: 0;
+        }
+        
+        .e-ticket-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: #003a70;
+            flex-grow: 1;
+        }
+        
+        .e-ticket-flight-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .flight-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .flight-info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .flight-info-label {
+            font-size: 11px;
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .flight-info-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: #003a70;
+        }
+        
+        .e-ticket-qr-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .qr-code-container {
+            width: 150px;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #eee;
+            background: white;
+        }
+        
+        .e-ticket-footer {
+            padding: 10px 15px;
+            text-align: center;
+            background: #f8f9fa;
+            font-size: 10px;
+            color: #6c757d;
+        }
+
+        .preview-title {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .preview-instruction {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #777;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            .form-container, .preview-container {
+                width: 100%;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>E-Ticket Generator</h1>
+            <p>Create electronic tickets with scannable QR codes</p>
+        </header>
+        
+        <div class="content">
+            <div class="form-container">
+                <h2>Enter Ticket Details</h2>
+                
+                <div class="form-group">
+                    <label for="eticketNumber">E-Ticket Number</label>
+                    <input type="text" id="eticketNumber" placeholder="1234567890123" value="1234567890123">
+                </div>
+                <div class="form-group">
+                    <label for="eticketFirstName">First Name</label>
+                    <input type="text" id="eticketFirstName" placeholder="Rahul" value="Rahul">
+                </div>
+                <div class="form-group">
+                    <label for="eticketLastName">Last Name</label>
+                    <input type="text" id="eticketLastName" placeholder="Sharma" value="Sharma">
+                </div>
+                <div class="form-group">
+                    <label for="eticketFlight">Flight Number</label>
+                    <input type="text" id="eticketFlight" placeholder="AI 2727" value="AI 2727">
+                </div>
+                <div class="form-group">
+                    <label for="eticketFrom">From (Airport Code)</label>
+                    <select id="eticketFrom">
+                        <option value="DEL">DEL - Delhi</option>
+                        <option value="BOM" selected>BOM - Mumbai</option>
+                        <option value="BLR">BLR - Bangalore</option>
+                        <option value="MAA">MAA - Chennai</option>
+                        <option value="HYD">HYD - Hyderabad</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="eticketTo">To (Airport Code)</label>
+                    <select id="eticketTo">
+                        <option value="BOM">BOM - Mumbai</option>
+                        <option value="DEL" selected>DEL - Delhi</option>
+                        <option value="BLR">BLR - Bangalore</option>
+                        <option value="MAA">MAA - Chennai</option>
+                        <option value="HYD">HYD - Hyderabad</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="eticketDate">Departure Date</label>
+                    <input type="date" id="eticketDate">
+                </div>
+                <div class="form-group">
+                    <label for="eticketTime">Departure Time</label>
+                    <input type="time" id="eticketTime" value="13:15">
+                </div>
+                <div class="form-group">
+                    <label for="eticketClass">Class</label>
+                    <select id="eticketClass">
+                        <option value="Y">Economy (Y)</option>
+                        <option value="W">Premium Economy (W)</option>
+                        <option value="J">Business (J)</option>
+                        <option value="F">First (F)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="eticketStatus">Status</label>
+                    <select id="eticketStatus">
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Waitlisted">Waitlisted</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                
+                <button class="generate-btn" id="generateBtn">Generate E-Ticket</button>
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+            
+            <div class="preview-container">
+                <h2 class="preview-title">Your E-Ticket</h2>
+                <p class="preview-instruction">Fill out the form and click "Generate E-Ticket" to create your ticket</p>
+                
+                <div id="eTicket" class="e-ticket">
+                    <div class="e-ticket-header">
+                        <div class="e-ticket-title">ELECTRONIC TICKET</div>
+                        <div class="e-ticket-subtitle">22 NORTH AIRLINES</div>
+                    </div>
+                    <div class="e-ticket-content">
+                        <div class="e-ticket-section">
+                            <div class="e-ticket-section-title">PASSENGER INFORMATION</div>
+                            <div class="e-ticket-row">
+                                <div class="e-ticket-label">NAME:</div>
+                                <div class="e-ticket-value" id="eticketPassenger">RAHUL SHARMA</div>
+                            </div>
+                            <div class="e-ticket-row">
+                                <div class="e-ticket-label">E-TICKET NO:</div>
+                                <div class="e-ticket-value" id="eticketNumberDisplay">1234567890123</div>
+                            </div>
+                            <div class="e-ticket-row">
+                                <div class="e-ticket-label">STATUS:</div>
+                                <div class="e-ticket-value" id="eticketStatusDisplay">CONFIRMED</div>
+                            </div>
+                        </div>
+                        
+                        <div class="e-ticket-section">
+                            <div class="e-ticket-section-title">FLIGHT INFORMATION</div>
+                            <div class="flight-info-grid">
+                                <div class="flight-info-item">
+                                    <div class="flight-info-label">FLIGHT:</div>
+                                    <div class="flight-info-value" id="eticketFlightDisplay">AI 2727</div>
+                                </div>
+                                <div class="flight-info-item">
+                                    <div class="flight-info-label">CLASS:</div>
+                                    <div class="flight-info-value" id="eticketClassDisplay">ECONOMY</div>
+                                </div>
+                                <div class="flight-info-item">
+                                    <div class="flight-info-label">FROM:</div>
+                                    <div class="flight-info-value" id="eticketFromDisplay">BOM - MUMBAI</div>
+                                </div>
+                                <div class="flight-info-item">
+                                    <div class="flight-info-label">TO:</div>
+                                    <div class="flight-info-value" id="eticketToDisplay">DEL - DELHI</div>
+                                </div>
+                                <div class="flight-info-item" style="grid-column: span 2;">
+                                    <div class="flight-info-label">DEPARTURE:</div>
+                                    <div class="flight-info-value" id="eticketDepartDisplay">OCT 6 13:15</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="e-ticket-qr-container">
+                            <canvas id="eticketQrCode" class="qr-code-container"></canvas>
+                        </div>
+                    </div>
+                    <div class="e-ticket-footer">
+                        <div>Issued by 22 NORTH AIRLINES | Valid for travel only by the passenger named above</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Airport code to city mapping
+            const airportCities = {
+                'DEL': 'DELHI',
+                'BOM': 'MUMBAI',
+                'BLR': 'BANGALORE',
+                'MAA': 'CHENNAI',
+                'HYD': 'HYDERABAD'
+            };
+
+            // Generate document functionality
+            const generateBtn = document.getElementById('generateBtn');
+            const statusMessage = document.getElementById('statusMessage');
+
+            generateBtn.addEventListener('click', async function() {
+                try {
+                    generateBtn.disabled = true;
+                    generateBtn.textContent = 'Generating...';
+                    
+                    await generateETicket();
+                    
+                    // Show success message
+                    showStatus('E-Ticket generated successfully!', 'success');
+                    
+                    // Hide instruction text
+                    document.querySelector('.preview-instruction').style.display = 'none';
+                } catch (error) {
+                    showStatus('Error generating E-Ticket: ' + error.message, 'error');
+                } finally {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate E-Ticket';
+                }
+            });
+
+            // Generate E-Ticket
+            async function generateETicket() {
+                // Get form values
+                const firstName = document.getElementById('eticketFirstName').value || 'Rahul';
+                const lastName = document.getElementById('eticketLastName').value || 'Sharma';
+                const eticketNumber = document.getElementById('eticketNumber').value || '1234567890123';
+                const flight = document.getElementById('eticketFlight').value || 'AI 2727';
+                const from = document.getElementById('eticketFrom').value || 'BOM';
+                const to = document.getElementById('eticketTo').value || 'DEL';
+                const date = document.getElementById('eticketDate').value || '2025-09-10';
+                const time = document.getElementById('eticketTime').value || '13:15';
+                const flightClass = document.getElementById('eticketClass').value || 'Y';
+                const status = document.getElementById('eticketStatus').value || 'Confirmed';
+
+                // Format dates
+                const formattedDate = formatDateShort(date);
+                
+                // Get city names from airport codes
+                const fromCity = airportCities[from] || from;
+                const toCity = airportCities[to] || to;
+
+                // Update E-Ticket preview
+                const passengerName = (firstName + ' ' + lastName).toUpperCase();
+                document.getElementById('eticketPassenger').textContent = passengerName;
+                document.getElementById('eticketNumberDisplay').textContent = eticketNumber;
+                document.getElementById('eticketStatusDisplay').textContent = status.toUpperCase();
+                document.getElementById('eticketFlightDisplay').textContent = flight;
+                document.getElementById('eticketClassDisplay').textContent = getClassText(flightClass).toUpperCase();
+                document.getElementById('eticketFromDisplay').textContent = `${from} - ${fromCity}`;
+                document.getElementById('eticketToDisplay').textContent = `${to} - ${toCity}`;
+                document.getElementById('eticketDepartDisplay').textContent = `${formattedDate} ${formatTime(time)}`;
+
+                // Generate QR code for E-Ticket with proper format
+                const qrData = generateETicketQRData(eticketNumber, passengerName, flight, from, to, date, time, flightClass, status);
+                await generateQRCode('eticketQrCode', qrData, 150);
+            }
+
+            // Generate QR Code function
+            function generateQRCode(canvasId, data, size) {
+                return new Promise((resolve, reject) => {
+                    const canvas = document.getElementById(canvasId);
+                    if (!canvas) {
+                        reject(new Error('Canvas element not found: ' + canvasId));
+                        return;
+                    }
+                    
+                    // Clear the canvas first
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Ensure data is not empty
+                    if (!data || data.trim() === '') {
+                        console.error('QR Code data is empty');
+                        reject(new Error('QR Code data is empty'));
+                        return;
+                    }
+                    
+                    // Set canvas dimensions
+                    canvas.width = size;
+                    canvas.height = size;
+                    
+                    console.log('Generating QR code with data:', data);
+                    
+                    // Generate QR code
+                    QRCode.toCanvas(canvas, data, {
+                        width: size,
+                        margin: 1,
+                        color: {
+                            dark: '#000000',
+                            light: '#ffffff'
+                        }
+                    }, function(error) {
+                        if (error) {
+                            console.error('QR Code generation error:', error);
+                            reject(error);
+                        } else {
+                            console.log('QR Code generated successfully');
+                            resolve();
+                        }
+                    });
+                });
+            }
+
+            // Generate E-Ticket QR data with proper format
+            function generateETicketQRData(eticketNumber, passengerName, flight, from, to, date, time, flightClass, status) {
+                // Create a clean, scannable format that QR readers can parse
+                return `E-TICKET INFORMATION:
+                
+Ticket Number: ${eticketNumber}
+Passenger: ${passengerName}
+Flight: ${flight}
+Route: ${from} to ${to}
+Date: ${date}
+Time: ${time}
+Class: ${flightClass}
+Status: ${status}
+
+22 NORTH AIRLINES`;
+            }
+
+            // Helper functions
+            function formatDateShort(dateString) {
+                const date = new Date(dateString);
+                const options = { day: 'numeric', month: 'short' };
+                return date.toLocaleDateString('en-US', options).toUpperCase();
+            }
+            
+            function formatTime(timeString) {
+                if (!timeString) return '';
+                const [hours, minutes] = timeString.split(':');
+                return `${hours}:${minutes}`;
+            }
+            
+            function getClassText(classCode) {
+                switch (classCode) {
+                    case 'Y': return 'Economy';
+                    case 'W': return 'Premium Economy';
+                    case 'J': return 'Business';
+                    case 'F': return 'First';
+                    default: return 'Economy';
+                }
+            }
+            
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = 'status-message show ' + type;
+                
+                setTimeout(() => {
+                    statusMessage.classList.remove('show');
+                }, 3000);
+            }
+
+            // Set default dates
+            const today = new Date();
+            document.getElementById('eticketDate').value = today.toISOString().split('T')[0];
+
+            // Generate initial E-Ticket with default values
+            generateETicket();
+            document.querySelector('.preview-instruction').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
